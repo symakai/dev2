@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>maintenance tutorial.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+	font-size: 14px;
+	padding: 0 12px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	color: #4080D0;
+	text-decoration: none;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+	font-size: inherit;
+	line-height: auto;
+}
+
+a:hover {
+	color: #4080D0;
+	text-decoration: underline;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left: 5px solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 14px;
+	line-height: 19px;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+.mac code {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+/** Theming */
+
+.vscode-light,
+.vscode-light pre code {
+	color: rgb(30, 30, 30);
+}
+
+.vscode-dark,
+.vscode-dark pre code {
+	color: #DDD;
+}
+
+.vscode-high-contrast,
+.vscode-high-contrast pre code {
+	color: white;
+}
+
+.vscode-light code {
+	color: #A31515;
+}
+
+.vscode-dark code {
+	color: #D7BA7D;
+}
+
+.vscode-light pre:not(.hljs),
+.vscode-light code > div {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre:not(.hljs),
+.vscode-dark code > div {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre:not(.hljs),
+.vscode-high-contrast code > div {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-light blockquote,
+.vscode-dark blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-high-contrast blockquote {
+	background: transparent;
+	border-color: #fff;
+}
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family:  "Meiryo", "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+</head>
+<body>
+<h1 id="dev2-maintenance-tutorial">Dev2 Maintenance Tutorial</h1>
+<ul>
+<li><a href="#Dev2-Maintenance-Tutorial">Dev2 Maintenance Tutorial</a>
+<ul>
+<li><a href="#Goal">Goal</a></li>
+<li><a href="#Commands">Commands</a>
+<ul>
+<li><a href="#CPU">CPU</a>
+<ul>
+<li><a href="#top">top</a></li>
+</ul>
+</li>
+<li><a href="#Disk">Disk</a>
+<ul>
+<li><a href="#df">df</a></li>
+<li><a href="#du">du</a></li>
+<li><a href="#lsll">ls/ll</a></li>
+</ul>
+</li>
+<li><a href="#Network">Network</a>
+<ul>
+<li><a href="#sar">sar</a></li>
+</ul>
+</li>
+<li><a href="#IO">IO</a>
+<ul>
+<li><a href="#iostat">iostat</a></li>
+</ul>
+</li>
+<li><a href="#Memory">Memory</a>
+<ul>
+<li><a href="#free">free</a></li>
+</ul>
+</li>
+<li><a href="#JVM">JVM</a>
+<ul>
+<li><a href="#JVM-Memory">JVM Memory</a></li>
+<li><a href="#jps">jps</a></li>
+<li><a href="#jmap">jmap</a></li>
+<li><a href="#jstat">jstat</a></li>
+<li><a href="#jstack">jstack</a></li>
+<li><a href="#jhat">jhat</a></li>
+<li><a href="#jinfo">jinfo</a></li>
+</ul>
+</li>
+<li><a href="#Port">Port</a>
+<ul>
+<li><a href="#netstat">netstat</a></li>
+</ul>
+</li>
+<li><a href="#Dubug">Dubug</a>
+<ul>
+<li><a href="#jdb">jdb</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#Arthas">Arthas</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="goal">Goal</h2>
+<ul>
+<li>如何在linux上进行问题分析</li>
+<li>java命令及工具的初步了解和掌握</li>
+<li>运维流程标准化专业化</li>
+</ul>
+<h2 id="commands">Commands</h2>
+<h3 id="cpu">CPU</h3>
+<h4 id="top">top</h4>
+<ul>
+<li>Description：top程序提供了运行系统的动态实时视图。它可以显示系统摘要信息以及当前由Linux内核管理的进程或线程列表。</li>
+<li>Synopsis
+<ul>
+<li>top -hv|-bcHiOSs -d secs -n max -u|U user -p pid -o fld -w [cols]</li>
+</ul>
+</li>
+<li>Command-line options || Interactive command
+<ul>
+<li>1：显示所有cpu信息</li>
+<li>U|u user：过滤对应的程序</li>
+<li>M：内存使用率倒序查看</li>
+<li>P：Cpu使用率倒序查看</li>
+<li>H：线程显示</li>
+<li>E：扩展模式显示summary的内存数据</li>
+<li>e：扩展模式显示task window的内存数据</li>
+<li>k：kill signal(15, 9)</li>
+<li>L：搜索关键字 - &amp;：find next</li>
+<li>f：添加field, d|space-&gt;q|esc</li>
+<li>p：启动参数，监控对一个的pid进程</li>
+</ul>
+</li>
+<li>Pay Attention to
+<ul>
+<li>load average：1min 5min 15min</li>
+<li>Mem：free+buff+cache, see also free(1)</li>
+<li>RES：Resident Memory Size，某一个正在运行的进程使用的非交换区的物理内存大小</li>
+</ul>
+</li>
+</ul>
+<h3 id="disk">Disk</h3>
+<h4 id="df">df</h4>
+<ul>
+<li>Description：report file system disk space usage</li>
+<li>Synposis：df [OPTION]... [FILE]...</li>
+<li>Command line options
+<ul>
+<li>h：human</li>
+<li>T：show type</li>
+</ul>
+</li>
+<li>Pay Attension to：
+<ul>
+<li>查询某个目录mount on在哪里？df -h /home/dce</li>
+</ul>
+</li>
+</ul>
+<h4 id="du">du</h4>
+<ul>
+<li>Description： estimate file space usage</li>
+<li>Synposis：df [OPTION]... [FILE]...</li>
+<li>Command line options
+<ul>
+<li>h：human</li>
+<li>s：summarize</li>
+</ul>
+</li>
+<li>Pay Attension to：none</li>
+</ul>
+<h4 id="lsll">ls/ll</h4>
+<ul>
+<li>h：human</li>
+</ul>
+<h3 id="network">Network</h3>
+<h4 id="sar">sar</h4>
+<ul>
+<li>Description： Collect, report, or save system activity information</li>
+<li>Synposis：man sar</li>
+<li>Command line options
+<ul>
+<li>d：report activity for each block device, see also iostat</li>
+<li>n：report network statistics</li>
+</ul>
+</li>
+<li>Pratice
+<ul>
+<li>wget https://github.com/apache/flink/archive/release-1.8.1-rc1.tar.gz</li>
+<li>sar -n DEV 2</li>
+</ul>
+</li>
+</ul>
+<h3 id="io">IO</h3>
+<h4 id="iostat">iostat</h4>
+<ul>
+<li>Description：Report Central Processing Unit (CPU) statistics and input/output statistics for devices and partitions</li>
+<li>Synposis：man iostat</li>
+<li>Command line options
+<ul>
+<li>h：human</li>
+<li>p：displays statistics for block devices</li>
+<li>x：display extended statistics</li>
+<li>m：megabyte</li>
+</ul>
+</li>
+<li>Pratice
+<ul>
+<li>dd if=/dev/zero of=test bs=1k count=1024000</li>
+<li>fio -filename=./test -direct=1 -iodepth 1 -rw=randwrite -ioengine=libaio -bs=16k -size=2G -numjobs=1 -runtime=60 -group_reporting -name=mytest</li>
+<li>iostat -p -h -x 1</li>
+</ul>
+</li>
+<li>Pay attension to
+<ul>
+<li>avgqu-sz：发送到设备上的io请求的平均队列长度</li>
+<li>r_await：设备可以处理读请求的平均时间（毫秒）</li>
+<li>w_await：设备可以处理写请求的平均时间（毫秒）</li>
+<li>%util：Percentage of elapsed time during which I/O requests were issued to the device (bandwidth utilization for the  device). Device saturation occurs when this value is close to 100%</li>
+</ul>
+</li>
+</ul>
+<h3 id="memory">Memory</h3>
+<h4 id="free">free</h4>
+<ul>
+<li>Description：Display amount of free and used memory in the system</li>
+<li>Synposis：free [OPTION]</li>
+<li>Command line options
+<ul>
+<li>h：human</li>
+</ul>
+</li>
+<li>Pay Attension to：
+<ul>
+<li>remain = free+buff/cache</li>
+</ul>
+</li>
+</ul>
+<h3 id="jvm">JVM</h3>
+<h4 id="jvm-memory">JVM Memory</h4>
+<ul>
+<li>JVM Memory Anatomy</li>
+</ul>
+<p><img src="mem.png" alt="mem"></p>
+<ul>
+<li>JVM Memory Management
+<ul>
+<li>Eden</li>
+<li>Survivor
+<ul>
+<li>from</li>
+<li>to</li>
+</ul>
+</li>
+<li>Tenured</li>
+<li>Metaspace</li>
+</ul>
+</li>
+<li>GC Collection</li>
+</ul>
+<p><img src="collection.png" alt="collection"></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Parameter</th>
+<th style="text-align:center">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-XX:+UseSerialGC</td>
+<td style="text-align:center">Serial+Serial Old</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+UseParNewGC</td>
+<td style="text-align:center">ParNew+Serial Old</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+UseConcMarkSweepGC</td>
+<td style="text-align:center">ParNew+CMS Serial Old backup</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+UseParallelGC</td>
+<td style="text-align:center">Parallel Scavenge+Serial Old</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+UseParalledlOldGC</td>
+<td style="text-align:center">Parallel Scavenge+Parallel Old</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+UseG1GC</td>
+<td style="text-align:center">java1.7 java8</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>JVM Memory Parameter
+<ul>
+<li>-X：非所有JVM支持</li>
+<li>-XX：非稳定选项</li>
+</ul>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Parameter</th>
+<th style="text-align:center">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">-Xmx</td>
+<td style="text-align:center">max heap space</td>
+</tr>
+<tr>
+<td style="text-align:center">-Xms</td>
+<td style="text-align:center">min heap space</td>
+</tr>
+<tr>
+<td style="text-align:center">-Xmn</td>
+<td style="text-align:center">young space</td>
+</tr>
+<tr>
+<td style="text-align:center">-Xss</td>
+<td style="text-align:center">stack space</td>
+</tr>
+<tr>
+<td style="text-align:center">-verbose:gc</td>
+<td style="text-align:center">print gc log</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+PrintGCDetails</td>
+<td style="text-align:center">print detail gc log</td>
+</tr>
+<tr>
+<td style="text-align:center">-XX:+PrintHeapAtGC</td>
+<td style="text-align:center">print gc log when gc occur</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>
+<p>Java type information</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Alias</th>
+<th style="text-align:center">Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">B</td>
+<td style="text-align:center">Byte</td>
+</tr>
+<tr>
+<td style="text-align:center">C</td>
+<td style="text-align:center">Char</td>
+</tr>
+<tr>
+<td style="text-align:center">D</td>
+<td style="text-align:center">Double</td>
+</tr>
+<tr>
+<td style="text-align:center">F</td>
+<td style="text-align:center">Float</td>
+</tr>
+<tr>
+<td style="text-align:center">I</td>
+<td style="text-align:center">Integer</td>
+</tr>
+<tr>
+<td style="text-align:center">J</td>
+<td style="text-align:center">Long</td>
+</tr>
+<tr>
+<td style="text-align:center">Z</td>
+<td style="text-align:center">Boolean</td>
+</tr>
+<tr>
+<td style="text-align:center">S</td>
+<td style="text-align:center">Short</td>
+</tr>
+<tr>
+<td style="text-align:center">[I</td>
+<td style="text-align:center">Integer[]</td>
+</tr>
+<tr>
+<td style="text-align:center">Ljava/lang/String;</td>
+<td style="text-align:center">String</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<h4 id="jps">jps</h4>
+<ul>
+<li>Description：Lists the instrumented Java Virtual Machines (JVMs) on the target system</li>
+<li>Synposis：jps [ options ] [ hostid ]</li>
+<li>Command line
+<ul>
+<li>m：显示main函数的参数</li>
+</ul>
+</li>
+<li>Pay attention to：none</li>
+</ul>
+<h4 id="jmap">jmap</h4>
+<ul>
+<li>Description：Prints shared object memory maps or heap memory details for a process, core file, or remote debug server</li>
+<li>Synposis：jmap [ options ] pid</li>
+<li>Command line
+<ul>
+<li>heap：显示堆内存的垃圾回收信息</li>
+<li>histo[:live]：堆的直方图</li>
+<li>dump：输出dump文件，可以被jhat使用</li>
+</ul>
+</li>
+<li>Practice
+<ul>
+<li>jmap -histo pid</li>
+<li>jmap -heap pid</li>
+<li>jmap -dump:format=b,file=<out> pid</li>
+</ul>
+</li>
+<li>Pay attention to：none
+<ul>
+<li>java8之后取消永久代，增加Metaspace区域</li>
+<li>java9之后默认的GC为G1</li>
+</ul>
+</li>
+</ul>
+<h4 id="jstat">jstat</h4>
+<h4 id="jstack">jstack</h4>
+<h4 id="jhat">jhat</h4>
+<h4 id="jinfo">jinfo</h4>
+<ul>
+<li></li>
+</ul>
+<h3 id="port">Port</h3>
+<h4 id="netstat">netstat</h4>
+<h3 id="dubug">Dubug</h3>
+<h4 id="jdb">jdb</h4>
+<h2 id="arthas">Arthas</h2>
+
+</body>
+</html>
