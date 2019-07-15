@@ -13,11 +13,10 @@ public class Jdb {
         int j = 6;
         int sum = add(i, j);
         System.out.println(sum);
-            
         sum = 0;
         for(i = 0; i < 100; i++) {
             sum += i;
         }
-        System.out.println(sum);        
-        }
+        System.out.println(sum);
+    }
 }

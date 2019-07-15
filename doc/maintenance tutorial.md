@@ -38,7 +38,7 @@
 - Description：top程序提供了运行系统的动态实时视图。它可以显示系统摘要信息以及当前由Linux内核管理的进程或线程列表。
 - Synopsis
   - top -hv|-bcHiOSs -d secs -n max -u|U user -p pid -o fld -w [cols]
-- Command-line options || Interactive command
+- Command line options || Interactive command
   - 1：显示所有cpu信息
   - U|u user：过滤对应的程序
   - M：内存使用率倒序查看
