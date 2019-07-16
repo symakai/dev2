@@ -31,7 +31,6 @@
 ## Goal 
 - 如何在linux上进行问题分析
 - java命令及工具的初步了解和掌握
-- 运维流程标准化专业化
 ## Commands
 ### CPU
 #### top
@@ -61,7 +60,7 @@
 - Command line options
   - h：human
   - T：show type
-- Pay Attension to：
+- Pay Attention to：
   - 查询某个目录mount on在哪里？df -h /home/dce
 #### du
 - Description： estimate file space usage
@@ -69,7 +68,7 @@
 - Command line options
   - h：human
   - s：summarize
-- Pay Attension to：none
+- Pay Attention to：none
 #### ls/ll
 - h：human 
 ### Network
@@ -106,7 +105,7 @@
 - Synposis：free [OPTION]
 - Command line options
   - h：human
-- Pay Attension to：
+- Pay Attention to：
   - remain = free+buff/cache
 ### JVM
 #### JVM Memory
@@ -343,7 +342,7 @@
     - watch -e demo.MathGame primeFactors method
     - watch demo.MathGame primeFactors "{params,returnObj}"
 
-    | [condition-express |                  Description                  |
+    | condition-express |                  Description                  |
     | :----------------: | :-------------------------------------------: |
     |       target       |                  the object                   |
     |       clazz        |              the object's class               |

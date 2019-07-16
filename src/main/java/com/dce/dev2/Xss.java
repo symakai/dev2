@@ -23,6 +23,7 @@ public class Xss {
             Xss.recursion(1, 2, 3);
         } catch (Throwable e) {
             System.out.println("call = " + Xss.count);
+            e.printStackTrace();
         } 
     }
 }
