@@ -1,33 +1,33 @@
 # Dev2 Maintenance Tutorial
-- [Dev2 Maintenance Tutorial](#Dev2-Maintenance-Tutorial)
-  - [Goal](#Goal)
-  - [Commands](#Commands)
-    - [CPU](#CPU)
+- [Dev2 Maintenance Tutorial](#dev2-maintenance-tutorial)
+  - [Goal](#goal)
+  - [Commands](#commands)
+    - [CPU](#cpu)
       - [top](#top)
-    - [Disk](#Disk)
+    - [Disk](#disk)
       - [df](#df)
       - [du](#du)
       - [ls/ll](#lsll)
-    - [Network](#Network)
+    - [Network](#network)
       - [sar](#sar)
-    - [IO](#IO)
+    - [IO](#io)
       - [iostat](#iostat)
-    - [Memory](#Memory)
+    - [Memory](#memory)
       - [free](#free)
-    - [JVM](#JVM)
-      - [JVM Memory](#JVM-Memory)
+    - [JVM](#jvm)
+      - [JVM Memory](#jvm-memory)
       - [jps](#jps)
       - [jmap](#jmap)
       - [jstat](#jstat)
       - [jstack](#jstack)
       - [jhat](#jhat)
       - [jinfo](#jinfo)
-    - [Port](#Port)
+    - [Port](#port)
       - [netstat](#netstat)
       - [lsof](#lsof)
-    - [Dubug](#Dubug)
+    - [Dubug](#dubug)
       - [jdb](#jdb)
-  - [Arthas](#Arthas)
+  - [Arthas](#arthas)
 ## Goal 
 - 如何在linux上进行问题分析
 - java命令及工具的初步了解和掌握
@@ -94,7 +94,7 @@
   - dd if=/dev/zero of=test bs=1k count=1024000
   - fio -filename=./test -direct=1 -iodepth 1 -rw=randwrite -ioengine=libaio -bs=16k -size=2G -numjobs=1 -runtime=60 -group_reporting -name=mytest
   - iostat -p -h -x 1
-- Pay attension to
+- Pay attention to
   - avgqu-sz：发送到设备上的io请求的平均队列长度
   - r_await：设备可以处理读请求的平均时间（毫秒）
   - w_await：设备可以处理写请求的平均时间（毫秒）
@@ -313,7 +313,7 @@
   - \<n\> \<command\>：repeat command n times
   - help (or ?)：list commands
   - exit (or quit)：exit debugger
-- Pay attension to
+- Pay attention to
   - javac -g javafile
 ## Arthas
 - install

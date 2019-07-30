@@ -1,6 +1,8 @@
 #!/bin/bash
 #########################################################
 # Compatible with CentOS7.x
+# author:zhanghao
+# groupId:dev2
 #########################################################
 #Source function library.
 . /etc/init.d/functions
@@ -33,17 +35,17 @@ export LANG=zh_CN.UTF-8
 #Require root to run this script.
 #uid=`id | awk -F '(' '{print $1}' | awk -F '=' '{print $2}'`
 uid=`id | cut -d\( -f1 | cut -d= -f2`
-if [ $uid -ne 0 ]; then
+if [[ $uid != 0 ]]; then
   action "Please run this script as root." /bin/false
   exit 1
 fi
 
 # set backspace as erase for root and all login users(/home/*)
 configBackspace() {
-  echo "==============update root config============"
+  echo "==============set root backspace config=================="
   erase=`grep -wx "stty erase ^H" /root/.bash_profile | wc -l`
   if [[ $erase < 1 ]]; then
-    cp /root/.bash_profile  /root/.bash_profile_$(date +%F)
+    cp /root/.bash_profile  /root/.bash_profile.$(date +%F)
     echo "stty erase ^H" >> /root/.bash_profile
     source /root/.bash_profile
   fi
@@ -55,35 +57,41 @@ configBackspace() {
       if [[ $? == 0 ]]; then
         continue
       fi
+      echo "==============set ${user} backspace config==============="
       erase=`grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l`
       if [[ $erase < 1 ]]; then
-        cp /home/$user/.bash_profile /home/$user/.bash_profile_$(date +%F)
+        cp /home/$user/.bash_profile /home/$user/.bash_profile.$(date +%F)
         echo "stty erase ^H" >> /home/$user/.bash_profile
         # source /home/$user/.bash_profile
       fi
     fi
   done
+
+  action "config backspace to erase successfully" /bin/true
+  echo "========================================================="
+  echo ""
+  sleep 2
 }
 
-#Config Yum CentOS-Bases.repo and save Yum file
+#config Yum CentOS7-aliyun.repo
 configYum() {
-  echo "==============update yum with aliyun repo============"
+  echo "==============update yum with aliyun repo================"
   for i in /etc/yum.repos.d/*.repo
   do
-    mv $i ${i%.repo}_$(date +%F)
+    mv $i ${i%.repo}.$(date +%F)
   done
   wget -O /etc/yum.repos.d/CentOS7-aliyun.repo http://mirrors.aliyun.com/repo/Centos-7.repo > /dev/null 2>&1
   yum clean all;yum makecache;yum repolist
   sleep 5
-  action "config aliyun yum completely"  /bin/true
-  echo "================================================="
+  action "config aliyun yum repository successfully"  /bin/true
+  echo "========================================================="
   echo ""
   sleep 2
 }
 
 #Charset zh_CN.UTF-8
-initI18n() {
-  echo "================更改为中文字符集================="
+configCharset() {
+  echo "=============change charset to zh_CN.UTF-8==============="
   cp /etc/locale.conf  /etc/locale.conf.$(date +%F)
   cat >> /etc/locale.conf<<EOF
 LANG="zh_CN.UTF-8"
@@ -91,174 +99,152 @@ LANG="zh_CN.UTF-8"
 EOF
   source /etc/locale.conf
   grep LANG /etc/locale.conf
-  action "更改字符集zh_CN.UTF-8完成" /bin/true
-  echo "================================================="
+  action "change charset to zh_CN.UTF-8 successfully" /bin/true
+  echo "========================================================="
   echo ""
   sleep 2
 }
 
 #Close Selinux and Iptables
-initFirewall() {
-  echo "============禁用SELINUX及关闭防火墙=============="
+configFirewall() {
+  echo "==========forbidden selinux and close iptables==========="
   cp /etc/selinux/config /etc/selinux/config.$(date +%F)
   systemctl stop firewalld
+  systemctl disable firewalld
   sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
   setenforce 0
   systemctl status firewalld
-  echo '#grep SELINUX=disabled /etc/selinux/config ' 
+  echo 'run cmd:grep SELINUX=disabled /etc/selinux/config ' 
   grep SELINUX=disabled /etc/selinux/config 
-  echo '#getenforce '
+  echo 'run cmd:getenforce '
   getenforce 
-  action "禁用selinux及关闭防火墙完成" /bin/true
-  echo "================================================="
+  action "forbidden selinux and close iptables successfully" /bin/true
+  echo "========================================================="
   echo ""
   sleep 2
 }
 
-#Init Auto Startup Service
-# initService() {
-# echo "===============精简开机自启动===================="
-#   export LANG="en_US.UTF-8"
-#   for A in `systemctl list-unit-files | grep enable|awk '{print $1}'`;do systemctl $A off;done
-#   for B in auditd.service crond.service  irqbalance.service  kdump.service microcode.service rsyslog.service sshd.service  sysstat.service  \
-#   	systemd-readahead-collect.service   multi-user.target remote-fs.target runlevel2.target  NetworkManager.service ;do systemctl enable $B;done
-#   echo '+--------which services on---------+'
-#   systemctl list-unit-files | grep enable
-#   echo '+----------------------------------+'
-#   export LANG="zh_CN.UTF-8"
-# action "精简开机自启动完成" /bin/true
-# echo "================================================="
-# echo ""
+#Removal system and kernel version login before the screen display
+# initRemoval() {
+#   echo "====remove kernel version infomation when login====="
+#   #must use root user run scripts
+#   if    
+#     [ $UID -ne 0 ];then
+#     echo This script must use the root user ! ! ! 
+#     sleep 2
+#     exit 0
+#   fi
+#   cp /etc/redhat-release /etc/redhat-release.$(date +%F)
+#   >/etc/redhat-release
+#   >/etc/issue
+#   action "remove kernel version infomation successfully" /bin/true
+#   echo "==================================================="
+#   echo ""
 #   sleep 2
 # }
 
-#Removal system and kernel version login before the screen display
-initRemoval(){
-echo "======去除系统及内核版本登录前的屏幕显示======="
-#must use root user run scripts
-if    
-   [ $UID -ne 0 ];then
-   echo This script must use the root user ! ! ! 
-   sleep 2
-   exit 0
-fi
-    cp /etc/redhat-release /etc/redhat-release.$(date +%F)
-    >/etc/redhat-release
-    >/etc/issue
-action "去除系统及内核版本登录前的屏幕显示" /bin/true
-echo "================================================="
-echo ""
-  sleep 2
-}
-
-#Change sshd default port and prohibit user root remote login.
-initSsh(){
-echo "========修改ssh默认端口22 & 禁用root远程登录=========="
-  \cp /etc/ssh/sshd_config /etc/ssh/sshd_config.$(date +%F)
-  sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config
-  sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/g' /etc/ssh/sshd_config
-  sed -i 's/#PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
-  sed -i 's/#UseDNS yes/UseDNS no/g' /etc/ssh/sshd_config
-  echo '+-------modify the sshd_config-------+'
-  echo 'Port 22'
-  echo 'PermitEmptyPasswords no'
-  echo 'PermitRootLogin no'
-  echo 'UseDNS no'
-  echo '+------------------------------------+'
-  /etc/init.d/sshd reload && action "修改ssh默认参数完成" /bin/true || action "修改ssh参数失败" /bin/false
-echo "================================================="
-echo ""
+#Change sshd default port to 22
+configDefaultSSHPort() {
+  echo "======confirm ssh port is 22,if not,change to 22========="
+  port=$(grep -wE '^Port' /etc/ssh/sshd_config | awk -F '\\s+' '{print $2}')
+  if [[ $port != 22 && $port != "" ]]; then
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.$(date +%F)
+    sed -i "s/$port/Port 22/g" /etc/ssh/sshd_config
+  fi 
+  systemctl restart sshd.service && action "config ssh port successfully" /bin/true || action "config ssh port failed" /bin/false
+  echo "========================================================="
+  echo ""
   sleep 2
 }
 
 #time sync
-syncSysTime(){
-echo "================配置时间同步====================="
-  \cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
-  NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null |wc -l`
-  if [ $NTPDATE -eq 0 ];then
-    echo "#times sync by lee at $(date +%F)" >>/var/spool/cron/root
+configSyncTime() {
+  echo "================config time sync========================="
+  cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
+  NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l`
+  if [[ $NTPDATE == 0 ]]; then
+    echo "#times sync by lee at $(date +%F)" >> /var/spool/cron/root
     echo "*/5 * * * * /usr/sbin/ntpdate time.windows.com &>/dev/null" >> /var/spool/cron/root
   fi
-  echo '#crontab -l'  
+  echo 'run cmd:crontab -l'  
   crontab -l
-action "配置时间同步完成" /bin/true
-echo "================================================="
-echo ""
+  action "config time sync successfully" /bin/true
+  echo "========================================================="
+  echo ""
   sleep 2
 }
 
 #install tools
-initTools(){
-    echo "#####安装升级系统补装工具及重要工具升级(选择最小化安装minimal)#####"
-    ping -c 2 mirrors.aliyun.com
-    sleep 2
-    yum install tree nmap sysstat iotop lrzsz dos2unix -y
-    sleep 2
-    rpm -qa tree nmap sysstat lrzsz dos2unix
-    sleep 2
-    yum install openssl openssh bash -y
-    sleep 2
-action "安装升级系统补装工具及重要工具升级(选择最小化安装minimal)" /bin/true
-echo "================================================="
-echo ""
+initTools() {
+  echo "========install tree|nmap|sysstat|iotop|dos2unix========="
+  ping -c 2 mirrors.aliyun.com
+  sleep 2
+  yum install tree nmap sysstat iotop dos2unix -y
+  sleep 2
+  rpm -qa tree nmap sysstat dos2unix
+  sleep 2
+  yum install openssl openssh bash -y
+  sleep 2
+  action "install tools successfully" /bin/true
+  echo "========================================================="
+  echo ""
   sleep 2
 }
 #add user and give sudoers
-addUser(){
-echo "===================新建用户======================"
-#add user
-while true
-do  
-    read -p "请输入新用户名:" name
-    NAME=`awk -F':' '{print $1}' /etc/passwd|grep -wx $name 2>/dev/null|wc -l`
-    if [ ${#name} -eq 0 ];then
-       echo "用户名不能为空，请重新输入。"
-       continue
-    elif [ $NAME -eq 1 ];then
-       echo "用户名已存在，请重新输入。"
-       continue
+addUser() {
+  echo "========================add user========================="
+  #add user
+  while true
+  do  
+    read -p "input user name:" name
+    NAME=`awk -F':' '{print $1}' /etc/passwd | grep -wx $name 2>/dev/null | wc -l`
+    if [[ $NAME == "" ]]; then
+      echo "user name can not null,please input angain"
+      continue
+    elif [[ $NAME == 1 ]]; then
+      echo "user name is used,please choose another"
+      continue
     fi
-useradd $name
-break
-done
-#create password
-while true
-do
-    read -p "为 $name 创建一个密码:" pass1
-    if [ ${#pass1} -eq 0 ];then
-       echo "密码不能为空，请重新输入。"
-       continue
+    useradd $name
+    break
+  done
+  #create password
+  while true
+  do
+    read -p "change password for $name:" pass1
+    if [[ $pass1 == "" ]]; then
+      echo "password is null,please input again"
+      continue
     fi
-    read -p "请再次输入密码:" pass2
-    if [ "$pass1" != "$pass2" ];then
-       echo "两次密码输入不相同，请重新输入。"
-       continue
+    read -p "please input angin:" pass2
+    if [[ $pass1 != $pass2 ]]; then
+      echo "two inputs are not same,please input again"
+      continue
     fi
-echo "$pass2" |passwd --stdin $name
-break
-done
-sleep 1
+    echo "$pass2" | passwd --stdin $name
+    break
+  done
+  sleep 1
 
 
-#add visudo
-echo "#####add visudo#####"
-\cp /etc/sudoers /etc/sudoers.$(date +%F)
-SUDO=`grep -w "$name" /etc/sudoers |wc -l`
-if [ $SUDO -eq 0 ];then
-    echo "$name  ALL=(ALL)       NOPASSWD: ALL" >>/etc/sudoers
-    echo '#tail -1 /etc/sudoers'
-    grep -w "$name" /etc/sudoers
-    sleep 1
-fi
-action "创建用户$name并将其加入visudo完成"  /bin/true
-echo "================================================="
-echo ""
-sleep 2
+  #add visudo
+  echo "#####add visudo#####"
+  cp /etc/sudoers /etc/sudoers.$(date +%F)
+  SUDO=`grep -w "$name" /etc/sudoers | wc -l`
+  if [[ $SUDO == "" ]]; then
+      echo "$name  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers
+      echo 'run cmd:tail -1 /etc/sudoers'
+      grep -w "$name" /etc/sudoers
+      sleep 1
+  fi
+  action "add user $name, add user to sudo successfully"  /bin/true
+  echo "========================================================="
+  echo ""
+  sleep 2
 }
 
 #Adjust the file descriptor(limits.conf)
-initLimits(){
+configLimits() {
 echo "===============加大文件描述符===================="
   LIMIT=`grep nofile /etc/security/limits.conf |grep -v "^#"|wc -l`
   if [ $LIMIT -eq 0 ];then
@@ -280,30 +266,10 @@ echo "================================================="
 echo ""
 sleep 2
 }
-#set ssh
-initSsh(){
-echo "======禁用GSSAPI来认证，也禁用DNS反向解析，加快SSH登陆速度======="
-sed -i 's/^GSSAPIAuthentication yes$/GSSAPIAuthentication no/' /etc/ssh/sshd_config
-sed -i 's/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
-service sshd restart
-action "禁用GSSAPI来认证，也禁用DNS反向解析，加快SSH登陆速度" /bin/true
-echo "================================================="
-echo ""
-sleep 2
-}
 
-#set the control-alt-delete to guard against the miSUSE
-initRestart(){
-rm -rf /usr/lib/systemd/system/ctrl-alt-del.target
-init q
-action "将ctrl alt delete键进行屏蔽，防止误操作的时候服务器重启" /bin/true
-echo "================================================="
-echo ""
-sleep 2
-}
 
 #Optimizing the system kernel
-initSysctl(){
+configSysctl() {
 echo "================优化内核参数====================="
 SYSCTL=`grep "net.ipv4.tcp" /etc/sysctl.conf |wc -l`
 if [ $SYSCTL -lt 10 ];then
@@ -364,41 +330,7 @@ echo "================================================="
 echo ""
 sleep 2
 }
-del_file(){
-echo "======每天1点定时清理邮件任务======"
-[ -f /server/scripts/ ] || mkdir -p /server/scripts/
-echo "find /var/spool/postfix/maildrop/ -type f|xargs rm -f" >/server/scripts/del_file.sh
-echo "#this is del mail task by hwb at $DATE" >>/var/spool/cron/root
-echo "0 1 * * * /bin/bash /server/scripts/del_file.sh &>/dev/null" >>/var/spool/cron/root
-echo "================================================="
-echo ""
-sleep 2
-}
 
-hide_info(){
-echo "======！！隐藏系统信息！！======"    
-echo "======这一项自己衡量吧，或者备份也行======"
-Version_information=`cat /etc/redhat-release.$(date +%F)`
->/etc/issue 
->/etc/issue.net
-if [ `cat /etc/issue|grep cent|wc -l` -eq 0 -a `cat /etc/issue|grep cent|wc -l` -eq 0 ];then
-echo "======清除成功====="
-else
->/etc/issue 
->/etc/issue.net
-fi
-echo "$Version_information"
-echo "=====认准本系统版本======"
-sleep 10
-echo "================================================="
-}
-grub_md5(){
-echo "======grub_md5加密======"
-echo "======命令行输入：/sbin/grub-md5-crypt 进行交互式加密======"
-echo "把密码写入/etc/grub.conf 格式：password --MD5 密码"
-echo ""
-sleep 10
-}
 ban_ping(){
 #内网可以ping 其他不能ping 这个由于自己也要ping测试不一定要设置
 echo '#内网可以ping 其他不能ping 这个由于自己也要ping测试不一定要设置'
