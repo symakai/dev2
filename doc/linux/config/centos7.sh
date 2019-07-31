@@ -53,7 +53,8 @@ fi
 
 # set backspace as erase for root and all login users(/home/*)
 configBackspace() {
-  echo "==============set root backspace config=================="
+  echo "================config backspace as erase================"
+  echo "config for user:root"
   erase=`grep -wx "stty erase ^H" /root/.bash_profile | wc -l`
   if [[ $erase < 1 ]]; then
     cp /root/.bash_profile  /root/.bash_profile.$(date +%F)
@@ -68,7 +69,7 @@ configBackspace() {
       if [[ $? == 0 ]]; then
         continue
       fi
-      echo "==============set ${user} backspace config==============="
+      echo "config for user:${user}"
       erase=`grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l`
       if [[ $erase < 1 ]]; then
         cp /home/$user/.bash_profile /home/$user/.bash_profile.$(date +%F)
@@ -86,7 +87,7 @@ configBackspace() {
 
 #config Yum CentOS7-aliyun.repo
 configYum() {
-  echo "==============update yum with aliyun repo================"
+  echo "==============config yum with aliyun repo================"
   for i in /etc/yum.repos.d/*.repo
   do
     mv $i ${i%.repo}.$(date +%F)
@@ -170,57 +171,99 @@ configSyncOutTime() {
 }
 # configSyncInnerTime() {
 # }
-authorizationName() {
+readName() {
   read -p "input authorized user name that you want to:" name
   if [[ $name == "" ]]; then
     read -p "input user name is null, quit?[y/n]:" option
     if [[ $option == "y" || $option == "Y" ]]; then
+      step="quit"
       return 1;
     else
       authorizationName
     fi
   fi
-  step="ip"
+  step=$1
 }
-authorizationIp() {
+readIp() {
   read -p "input ip address list, for example ip1,ip2,ip3:" ips
   if [[ $ips == "" ]]; then
     read -p "input ip address lists is null, quit?[y/n]:" option
     if [[ $option == "y" || $option == "Y" ]]; then
+      step="quit"
       return 1
     else
       authorizationIp
     fi
   fi
-  iplists=(${ips//,/ })
+  iplist=(${ips//,/ })
   #whether ip format is correct or not
-  for ip in ${iplists[@]}
+  # for ip in ${iplist[@]}
+  local counts=${#iplist[@]}
+  for ((i=0; i<counts; i++))
   do
+    ip=${iplist[i]}
     echo $ip | grep -wP "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" > /dev/null
     if [[ $? != 0 ]]; then
       echo "$ip format is wrong"
-      step="redoip"
+      step="ip"
       return 1
     fi
+    # for ((j=0; j<counts; j++))
+    # do
+    #   if [[ $i != $j ]]; then
+    #     if [[ ${iplist[i]} == ${iplist[j]} ]]; then
+    #       echo "there are two same ip address:${iplist[i]}"
+    #       step="ip"
+    #       return 1
+    #     fi
+    #   fi
+    # done
   done
-  step="auth"
+  step=$1
 }
 configAuthorization() {
   echo "==================Authorization=========================="
   while true
   do
     case $step in
-      "redoip"|"ip")
-        authorizationIp
+      "ip")
+        readIp "auth"
         ;;
       "auth")
         break
         ;;
+      "quit")
+        break
+        ;;
       *)
-        authorizationName
+        readName "ip"
         ;;
     esac
   done
+  if [[ $step == "quit" ]]; then
+    return 1
+  fi
+  if [[ $step == "auth" ]]; then
+    local counts=${#iplist[@]}
+    for ((i=0; i<counts; i++))
+    do
+      for ((j=0; j<counts; j++))
+      do
+        if [[ $i != $j ]]; then
+          echo ""
+          echo "+++++Authorise ip:${iplist[i]}=>ip:${iplist[j]}"
+          echo "+++++login ip:${iplist[i]} with $name"
+          ssh  -tt $name@${iplist[i]} <<EOF
+ssh-keygen -t rsa
+ssh-copy-id -i ~/.ssh/id_rsa.pub root@192.168.128.128 
+exit 0
+EOF
+          echo ""
+          sleep 5 
+        fi
+      done
+    done
+  fi
   echo "========================================================="
 }
 
@@ -246,9 +289,9 @@ configAuthorization() {
 #         continue
 #       fi
 #     fi
-#     iplists=(${ips//,/ })
+#     iplist=(${ips//,/ })
 #     #whether ip is correct or not
-#     for ip in ${iplists[@]}
+#     for ip in ${iplist[@]}
 #     do
 #       echo $ip | grep -wP "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" > /dev/null
 #       if [[ $? != 0 ]]; then
@@ -496,10 +539,11 @@ do
 (10) 设置外网时间同步
 (11) 设置内网集群时间同步(需授信)
 (12) 集群授信 
+(13) 设置backspace为删除键
 (0)  退出 
 EOF
-  read -p "Please enter your Choice[0-10]: " input2
-  case "$input2" in
+  read -p "Please enter your Choice[0-13]: " input1
+  case "$input1" in
     0)
       clear
       break 
@@ -539,6 +583,9 @@ EOF
       ;;
     12)
       configAuthorization
+      ;;
+    13)
+      configBackspace
       ;;
     *)
       echo "----------------------------------"
