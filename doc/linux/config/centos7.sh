@@ -208,16 +208,16 @@ readIp() {
       step="ip"
       return 1
     fi
-    # for ((j=0; j<counts; j++))
-    # do
-    #   if [[ $i != $j ]]; then
-    #     if [[ ${iplist[i]} == ${iplist[j]} ]]; then
-    #       echo "there are two same ip address:${iplist[i]}"
-    #       step="ip"
-    #       return 1
-    #     fi
-    #   fi
-    # done
+    for ((j=0; j<counts; j++))
+    do
+      if [[ $i != $j ]]; then
+        if [[ ${iplist[i]} == ${iplist[j]} ]]; then
+          echo "there are two same ip address:${iplist[i]}"
+          step="ip"
+          return 1
+        fi
+      fi
+    done
   done
   step=$1
 }
@@ -235,6 +235,9 @@ configAuthorization() {
       "quit")
         break
         ;;
+      "name")
+        readName "ip"
+        ;;
       *)
         readName "ip"
         ;;
@@ -250,20 +253,20 @@ configAuthorization() {
       for ((j=0; j<counts; j++))
       do
         if [[ $i != $j ]]; then
+          echo -e "\n*****Authorise ip:${iplist[i]}=>ip:${iplist[j]}*****"
+          echo -e "*****login ip:${iplist[i]} with $name******\n"
+          ssh -tt -o StrictHostKeyChecking=no $name@${iplist[i]} "\
+          echo -e \"\n*****generate rsa key*****\n\" && \
+          ssh-keygen -t rsa && \
+          echo -e \"\n*****copy id_rsa.pub to ip:${iplist[j]}*****\n\" && \
+          ssh-copy-id $name@${iplist[j]} && exit"
           echo ""
-          echo "+++++Authorise ip:${iplist[i]}=>ip:${iplist[j]}"
-          echo "+++++login ip:${iplist[i]} with $name"
-          ssh  -tt $name@${iplist[i]} <<EOF
-ssh-keygen -t rsa
-ssh-copy-id -i ~/.ssh/id_rsa.pub root@192.168.128.128 
-exit 0
-EOF
-          echo ""
-          sleep 5 
+          sleep 2 
         fi
       done
     done
   fi
+  step="name"
   echo "========================================================="
 }
 
