@@ -1,8 +1,8 @@
 #!/bin/bash
 #########################################################
 # Note:
-# 1.scripts of devementment and maintenance
-# 2.Compatible with CentOS7.x
+# 1.utility of devementment and maintenance
+# 2.compatible with CentOS7.x
 # author:zhanghao
 # groupId:dev2
 # version 1.0  20190731
@@ -154,8 +154,8 @@ configDefaultSSHPort() {
 }
 
 #time sync
-configSyncOutTime() {
-  echo "================config time sync========================="
+configOuterSyncTime() {
+  echo "================config internet time sync================"
   cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
   NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l`
   if [[ $NTPDATE == 0 ]]; then
@@ -169,8 +169,36 @@ configSyncOutTime() {
   echo ""
   sleep 2
 }
-# configSyncInnerTime() {
-# }
+configInnerSyncTime() {
+  echo "================config intranet time sync================"
+  sync="ntpd"
+  while true
+  do
+    case sync in
+      "ntpd")
+        read -p "input ntp server ip:" ntpserver
+        if [[ $ntpserver == "" ]]; then
+          continue
+        fi
+        sync="ntpc"
+        ;;
+      "ntpc")
+        sync=
+        readIp
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  echo -e "*****config ntp server*****\n"
+  ssh root@$ntpserver "\
+  cp /etc/ntp.conf /etc/ntp.conf.$(date +%F)\
+  "
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
 readName() {
   read -p "input authorized user name that you want to:" name
   if [[ $name == "" ]]; then
@@ -247,7 +275,18 @@ configAuthorization() {
     return 1
   fi
   if [[ $step == "auth" ]]; then
+    echo ""
+    echo "******************************************************************************"
+    echo "* 1.please input user name"
+    echo "* 2.please input ip list that you want to authorise"
+    echo "* 3.please input [enter|y] according to the prompt"
+    echo "* 4.if authorization does not work"
+    echo "*   a)please confirm permission of ~/.ssh/authorized_keys is 600(-rw-------)"
+    echo "*   b)please confirm permission of /home/xxx is 700(drwx------)"
+    echo "******************************************************************************"
+    echo ""
     local counts=${#iplist[@]}
+    #cat ~/.ssh/id_rsa.pub | ssh user@machine "mkdir ~/.ssh; cat >> ~/.ssh/authorized_keys"
     for ((i=0; i<counts; i++))
     do
       for ((j=0; j<counts; j++))
@@ -270,53 +309,13 @@ configAuthorization() {
   echo "========================================================="
 }
 
-# configAuthorization() {
-#   echo "==================Authorization=========================="
-#   while true
-#   do
-#     read -p "input authorized user name that you want to:" name
-#     if [[ $name == "" ]]; then
-#       read -p "input user name is null, quit?[y/n]:" option
-#       if [[ $option == "y" || $option == "Y" ]]; then
-#         return 1;
-#       else
-#         continue
-#       fi
-#     fi
-#     read -p "input ip address list, for example ip1,ip2,ip3:" ips
-#     if [[ $ips == "" ]]; then
-#       read -p "input ip address lists is null, quit?[y/n]:" option
-#       if [[ $option == "y" || $option == "Y" ]]; then
-#         return 1
-#       else
-#         continue
-#       fi
-#     fi
-#     iplist=(${ips//,/ })
-#     #whether ip is correct or not
-#     for ip in ${iplist[@]}
-#     do
-#       echo $ip | grep -wP "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" > /dev/null
-#       if [[ $? != 0 ]]; then
-#         echo "$ip format is wrong"
-#       fi
-#     done
-#     break
-#   done
-#   echo "========================================================="
-# }
-
 #install tools
 installTools() {
-  echo "========install tree|nmap|sysstat|iotop|dos2unix========="
+  echo "======install sysstat|dos2unix|openssl|openssh|bash======"
   ping -c 2 mirrors.aliyun.com
-  sleep 2
-  yum install tree nmap sysstat iotop dos2unix -y
-  sleep 2
-  echo ""
-  echo "==============install openssl|openssh|bash==============="
-  yum install openssl openssh bash -y
-  sleep 2
+  sleep 1
+  yum install sysstat dos2unix openssl openssh bash -y
+  sleep 1
   action "install tools successfully" /bin/true
   echo "========================================================="
   echo ""
@@ -446,7 +445,9 @@ net.ipv4.icmp_echo_ignore_broadcasts=1
 net.core.somaxconn = 16384 
 net.core.netdev_max_backlog = 16384"
     echo "***************************************"
-    cat >> /etc/sysctl.conf<<EOF
+    read -p "ok?[y/n]:" option
+    if [[ $option == "y" || $option == "Y" ]]; then
+      cat >> /etc/sysctl.conf<<EOF
 net.ipv4.tcp_fin_timeout = 2
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_tw_recycle = 1
@@ -467,9 +468,10 @@ net.ipv4.icmp_echo_ignore_broadcasts=1
 net.core.somaxconn = 16384 
 net.core.netdev_max_backlog = 16384
 EOF
+      sysctl -p
+      action "kernel setting successfully" /bin/true
+    fi
   fi
-  sysctl -p
-  action "kernel setting successfully" /bin/true
   echo "========================================================="
   echo ""
   sleep 2
@@ -488,28 +490,10 @@ configHistory() {
   sleep 2
 }
 
-#lock system file
-# lockFile() {
-#   echo "======================lock system file==================="
-#   chattr +i /etc/passwd
-#   chattr +i /etc/inittab
-#   chattr +i /etc/group
-#   chattr +i /etc/shadow
-#   chattr +i /etc/gshadow
-#   /bin/mv /usr/bin/chattr /usr/bin/lock
-#   action "lock system file successfully" /bin/true
-#   echo "==========================================================="
-#   echo ""
-#   sleep 2
-# }
-
 clear
-echo "========================================"
-echo "          Dev2 Linux Config             "
-echo "========================================"
 echo ""
 cat << EOF
-|-----------System Infomation-----------
+|--------------------System Infomation----------------------
 | DATE           :$DATE
 | HOSTNAME       :$HOSTNAME
 | USER           :$USER
@@ -518,30 +502,33 @@ cat << EOF
 | CPU_PROCESSORS :$CPU_PROCESSORS
 | CPU_CORES      :$CPU_CORES
 | CPU_MODEL      :$CPU_MODEL
-| MEMORY         :$MEMORY
+| TOTAL MEMORY   :$MEMORY
 | CNETOS         :$CENTOS_VERSION
 | KERNEL         :$KERNEL_VERSION
 | JAVA           :$JAVA_VERSION
 | GCC            :$GCC_VERSION
-|---------------------------------------
+|-----------------------------------------------------------
 EOF
 
 while true;
 do
   echo ""
   cat <<EOF
+*==========================================================*
+*                    Dev2 Linux Config                     *
+*==========================================================*
 (1)  新建用户并选择是否加入sudoers
-(2)  外网配置aliyun YUM源
+(2)  外网配置YUM源(aliyun)
 (3)  配置中文字符集(zh_CN.UTF-8)
 (4)  禁用SELINUX及关闭防火墙
 (5)  修改ssh默认端口为22
-(6)  设置默认历史记录数(2000)
-(7)  安装系统工具
-(8)  配置文件描述符(65535)
-(9)  系统内核调优
+(6)  设置默认历史记录数(command history=2000)
+(7)  安装系统工具(dos2unix|sysstat|openssl|openssh|bash)
+(8)  配置打开文件与进程数量(nofile&&nproc=65535)
+(9)  系统内核调优(使用前需确认默认参数)
 (10) 设置外网时间同步
 (11) 设置内网集群时间同步(需授信)
-(12) 集群授信 
+(12) 集群环境双向授信 
 (13) 设置backspace为删除键
 (0)  退出 
 EOF
@@ -579,7 +566,7 @@ EOF
       configSysctl
       ;;
     10)
-      configOutSyncTime
+      configOuterSyncTime
       ;;
     11)
       configInnerSyncTime
@@ -594,11 +581,12 @@ EOF
       echo "----------------------------------"
       echo "|   Please Enter Right Choice!   |"
       echo "----------------------------------"
-      for i in `seq -w 3 -1 1`
-      do 
-        echo -ne "\b\b$i"
-        sleep 1
-      done
+      sleep 1
+      # for i in `seq -w 2 -1 1`
+      # do 
+      #   echo -ne "\b\b$i"
+      #   sleep 1
+      # done
       clear
   esac
 done
