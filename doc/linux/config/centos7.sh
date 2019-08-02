@@ -92,10 +92,15 @@ configYum() {
   do
     mv $i ${i%.repo}.$(date +%F)
   done
-  wget -O /etc/yum.repos.d/CentOS7-aliyun.repo http://mirrors.aliyun.com/repo/Centos-7.repo > /dev/null 2>&1
-  yum clean all;yum makecache;yum repolist
-  sleep 5
-  action "config aliyun yum repository successfully"  /bin/true
+  # wget -O /etc/yum.repos.d/CentOS7-aliyun.repo http://mirrors.aliyun.com/repo/Centos-7.repo > /dev/null 2>&1
+  curl -o /etc/yum.repos.d/CentOS7-aliyun.repo http://mirrors.aliyun.com/repo/Centos-7.repo > /dev/null 2>&1
+  if [[ $? != 0 ]]; then
+    action "config aliyun yum repository failed"  /bin/false
+  else
+    yum clean all;yum makecache;yum repolist
+    sleep 2
+    action "config aliyun yum repository successfully"  /bin/true
+  fi
   echo "========================================================="
   echo ""
   sleep 2
@@ -174,7 +179,7 @@ configInnerSyncTime() {
   sync="ntpd"
   while true
   do
-    case sync in
+    case $sync in
       "ntpd")
         read -p "input ntp server ip:" ntpserver
         if [[ $ntpserver == "" ]]; then
@@ -184,17 +189,43 @@ configInnerSyncTime() {
         ;;
       "ntpc")
         sync=
-        readIp
+        readIp "" "ntp client ip list"
         ;;
       *)
         break
         ;;
     esac
   done
-  echo -e "*****config ntp server*****\n"
-  ssh root@$ntpserver "\
-  cp /etc/ntp.conf /etc/ntp.conf.$(date +%F)\
-  "
+  echo -e "\n*****config ntp server($ntpserver)*****\n"
+  ssh -tt root@$ntpserver '\
+  rpm -q ntp > /dev/null || yum list installed | grep -w ntp > /dev/null;
+  if [[ $? != 0 ]]; then
+    echo -e \"\n******install ntpd*******\";
+    yum install ntp -y;
+  fi
+  if [[ $? == 0 ]]; then
+    ls /etc/ntp.conf.origin > /dev/null 2>&1;
+    if [[ $? == 1 ]]; then
+      cp /etc/ntp.conf /etc/ntp.conf.init > /dev/null 2>&1;
+    else
+      mv /etc/ntp.conf /etc/ntp.conf.$(date +%F) > /dev/null 2>&1;
+    fi
+    cat > /etc/ntp.conf <<EOF
+driftfile /var/lib/ntp/drift
+restrict default ignore
+restrict 127.0.0.1 
+restrict ::1
+server 127.127.1.0
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+disable monitor
+EOF
+    systemctl enable ntpd;
+    systemctl start  ntpd;
+  else
+    echo -e \"\n******install ntpd failed******\n\";
+  fi
+  '
   echo "========================================================="
   echo ""
   sleep 2
@@ -213,14 +244,18 @@ readName() {
   step=$1
 }
 readIp() {
-  read -p "input ip address list, for example ip1,ip2,ip3:" ips
+  if [[ $2 != "" ]]; then
+    read -p "input $2, for example ip1,ip2,ip3:" ips
+  else
+    read -p "input ip address list, for example ip1,ip2,ip3:" ips
+  fi
   if [[ $ips == "" ]]; then
     read -p "input ip address lists is null, quit?[y/n]:" option
     if [[ $option == "y" || $option == "Y" ]]; then
       step="quit"
       return 1
     else
-      authorizationIp
+      readIp
     fi
   fi
   iplist=(${ips//,/ })
@@ -527,7 +562,7 @@ do
 (8)  配置打开文件与进程数量(nofile&&nproc=65535)
 (9)  系统内核调优(使用前需确认默认参数)
 (10) 设置外网时间同步
-(11) 设置内网集群时间同步(需授信)
+(11) 设置内网集群时间同步
 (12) 集群环境双向授信 
 (13) 设置backspace为删除键
 (0)  退出 
