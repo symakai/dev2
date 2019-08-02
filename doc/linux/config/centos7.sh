@@ -11,19 +11,19 @@
 . /etc/init.d/functions
 . ~/.bash_profile
 #date
-DATE=`date +"%Y-%m-%d %H:%M:%S"`
+DATE=$(date +"%Y-%m-%d %H:%M:%S")
 #ip
-IPADDR=`ifconfig | grep "inet" | grep -vE  'inet6|127.0.0.1' | awk '{print $2}' | sed -n '1p'`
+IPADDR=$(ifconfig | grep "inet" | grep -vE  'inet6|127.0.0.1' | awk '{print $2}' | sed -n '1p')
 #hostname
-HOSTNAME=`hostname -s`
+HOSTNAME=$(hostname -s)
 #user
-USER=`whoami`
+USER=$(whoami)
 #disk_check
-DISK_SDA=`df -h | grep -w "/" | grep -v 'host' | awk '{print $5}'`
+DISK_SDA=$(df -h | grep -w "/" | grep -v 'host' | awk '{print $5}')
 #cpu_average_check,1min 5min 15min
-CPU_AVG=`cat /proc/loadavg | awk '{print $1, $2, $3}'`
+CPU_AVG=$(cat /proc/loadavg | awk '{print $1, $2, $3}')
 #cpu processor 
-CPU_PROCESSORS=`cat /proc/cpuinfo | grep -w 'processor' | wc -l`
+CPU_PROCESSORS=$(cat /proc/cpuinfo | grep -w 'processor' | wc -l)
 #cpu cores
 #in case of `` awk should like this:awk -F ':\\\\s*' '{print $2}'
 CPU_CORES=$(cat /proc/cpuinfo | grep -w 'cpu cores' | awk -F ':\\s*' '{print $2}' | awk '{sum+=$1} END {print sum}')
@@ -32,13 +32,13 @@ CPU_MODEL=$(cat /proc/cpuinfo | grep -w 'model name' | sed -n '1p' | awk -F ':\\
 #memory capcity
 MEMORY=$(free -h | sed -n '2p' | awk -F '\\s*' '{print $2}')
 #centos version
-CENTOS_VERSION=`cat /etc/redhat-release`
+CENTOS_VERSION=$(cat /etc/redhat-release)
 #kernel_verison
-KERNEL_VERSION=`uname -sr`
+KERNEL_VERSION=$(uname -sr)
 #java_version
-JAVA_VERSION=`java -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}'`
+JAVA_VERSION=$(java -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}')
 #gcc_version
-GCC_VERSION=`gcc --version | grep -w "gcc" | awk '{print $3}'`
+GCC_VERSION=$(gcc --version | grep -w "gcc" | awk '{print $3}')
 
 #set LANG
 export LANG=zh_CN.UTF-8
