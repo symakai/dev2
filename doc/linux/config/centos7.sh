@@ -51,35 +51,67 @@ if [[ $uid != 0 ]]; then
   exit 1
 fi
 
-# set backspace as erase for root and all login users(/home/*)
-configBackspace() {
-  echo "================config backspace as erase================"
-  echo "config for user:root"
-  erase=`grep -wx "stty erase ^H" /root/.bash_profile | wc -l`
-  if [[ $erase < 1 ]]; then
-    cp /root/.bash_profile  /root/.bash_profile.$(date +%F)
-    echo "stty erase ^H" >> /root/.bash_profile
-    source /root/.bash_profile
-  fi
-  for user in `ls /home`
-  do
-    id $user > /dev/null
-    if [[ $? == 0 ]]; then
-      cat /etc/passwd | grep -w "$user" | grep "nologin" > /dev/null
-      if [[ $? == 0 ]]; then
-        continue
-      fi
-      echo "config for user:${user}"
-      erase=`grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l`
-      if [[ $erase < 1 ]]; then
-        cp /home/$user/.bash_profile /home/$user/.bash_profile.$(date +%F)
-        echo "stty erase ^H" >> /home/$user/.bash_profile
-        # source /home/$user/.bash_profile
-      fi
-    fi
-  done
 
-  action "config backspace to erase successfully" /bin/true
+#add user and give sudoers
+addUser() {
+  echo "========================add user========================="
+  #add user
+  while true
+  do  
+    read -p "user name:" name 
+    NAME=`awk -F':' '{print $1}' /etc/passwd | grep -wx $name 2>/dev/null | wc -l`
+    if [[ $NAME == "" ]]; then
+      echo "user name is null, please input angain"
+      continue
+    elif [[ $NAME == 1 ]]; then
+      echo "user name is used, please choose another"
+      continue
+    fi
+    useradd $name
+    break
+  done
+  #create password
+  while true
+  do
+    read -p "change password for $name:" pass1
+    if [[ $pass1 == "" ]]; then
+      echo "password is null, please input again"
+      continue
+    fi
+    read -p "input password angin:" pass2
+    if [[ $pass1 != $pass2 ]]; then
+      echo "two inputs are inconsistent, please input again"
+      continue
+    fi
+    echo "$pass2" | passwd --stdin $name
+    action "add user $name successfully"  /bin/true
+    break
+  done
+  sleep 1
+
+  while true
+  do
+    read -p "add $name to sudoer?[y/n]:" option
+    if [[ $option == "" ]]; then
+      echo "please input y or n"
+      continue
+    fi
+    if [[ $option == "y" || $option == "Y" ]]; then
+      #add visudo
+      echo -e "\n*****add sudoer******\n"
+      cp /etc/sudoers /etc/sudoers.$(date +%F)
+      SUDO=`grep -w "$name" /etc/sudoers | wc -l`
+      if [[ $SUDO == 0 ]]; then
+          echo "$name  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers
+          echo "run cmd:tail -1 /etc/sudoers"
+          tail -1 /etc/sudoers
+          # grep -w "$name" /etc/sudoers
+          sleep 1
+      fi
+      action "add sudoer successfully"  /bin/true
+    fi
+    break
+  done
   echo "========================================================="
   echo ""
   sleep 2
@@ -110,7 +142,7 @@ configYum() {
 configCharset() {
   echo "=============change charset to zh_CN.UTF-8==============="
   cp /etc/locale.conf  /etc/locale.conf.$(date +%F)
-  cat >> /etc/locale.conf<<EOF
+  cat > /etc/locale.conf<<EOF
 LANG="zh_CN.UTF-8"
 #LANG="en_US.UTF-8"
 EOF
@@ -150,9 +182,150 @@ configDefaultSSHPort() {
   port=$(grep -wE '^Port' /etc/ssh/sshd_config | awk -F '\\s+' '{print $2}')
   if [[ $port != 22 && $port != "" ]]; then
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.$(date +%F)
-    sed -i "s/$port/Port 22/g" /etc/ssh/sshd_config
+    sed -i "s/Port=$port/Port=22/g" /etc/ssh/sshd_config
+    systemctl restart sshd.service && action "config ssh port successfully" /bin/true || action "config ssh port failed" /bin/false
+  else
+    echo "change nothing,ssh port has been set to 22"
   fi 
-  systemctl restart sshd.service && action "config ssh port successfully" /bin/true || action "config ssh port failed" /bin/false
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
+
+#setting history
+configHistory() {
+  echo "=============history command size=2000==================="
+  linenum=$(grep -wn "^HISTSIZE" /etc/profile | awk -F ':' '{print $1}')
+  if [[ $linenum != 0 && $linenum != "" ]]; then
+    sed -in "${linenum}c HISTSIZE=2000" /etc/profile
+  else
+    echo "HISTSIZE=2000" >> /etc/profile
+  fi
+  linenum=$(grep -wn "^HISTTIMEFORMAT" /etc/profile | awk -F ':' '{print $1}')
+  if [[ $linenum != 0 && $linenum != "" ]]; then
+    sed -in "${linenum}c HISTTIMEFORMAT='%F %T \`whoami\`=> '" /etc/profile
+    # sed -i "s/HISTTIMEFORMAT=$format/$newformat/g" /etc/profile
+  else
+    echo "HISTTIMEFORMAT='%F %T `whoami`=> '" >> /etc/profile
+  fi
+  source /etc/profile && action "config history successfully" /bin/true || action "config history failed" /bin/false
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
+
+#install tools
+installTools() {
+  echo "======install sysstat|dos2unix|openssl|openssh|bash======"
+  ping -c 2 mirrors.aliyun.com
+  sleep 1
+  yum install sysstat dos2unix openssl openssh bash -y
+  sleep 1
+  action "install tools successfully" /bin/true
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
+
+#Adjust the file descriptor(limits.conf)
+configLimits() {
+  echo "===============config file descriptor===================="
+  LIMIT=`grep nofile /etc/security/limits.conf | grep -v "^#" | wc -l`
+  if [[ $LIMIT == 0 ]]; then
+    echo ""
+    echo "***limit settting****"
+    echo "* soft nofile 65535 *"
+    echo "* hard nofile 65535 *"
+    # echo "* soft nproc  65535 *"
+    # echo "* hard nproc  65535 *"
+    echo "*********************"
+    echo ""
+    cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
+    cat >> /etc/security/limits.conf<<EOF
+* soft nofile 65535 
+* hard nofile 65535
+EOF
+  fi
+
+  LIMIT=`grep nproc /etc/security/limits.conf | grep -v "^#" | wc -l`
+  if [[ $LIMIT == 0 ]]; then
+    echo ""
+    echo "***limit settting****"
+    echo "* soft nproc  65535 *"
+    echo "* hard nproc  65535 *"
+    echo "*********************"
+    echo ""
+    cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
+    cat >> /etc/security/limits.conf<<EOF
+* soft nproc  65535
+* hard nproc  65535
+EOF
+  fi
+  echo 'run cmd:tail -4 /etc/security/limits.conf'
+  tail -4 /etc/security/limits.conf
+  ulimit -HSn 65535
+  echo 'run cmd:ulimit -n'
+  ulimit -n
+  action "config limit to 65535 successfully" /bin/true
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
+
+
+#Optimizing the system kernel
+configSysctl() {
+  echo "====================config sysctl========================"
+  SYSCTL=`grep "net.ipv4.tcp" /etc/sysctl.conf | wc -l`
+  if [[ $SYSCTL < 1 ]]; then
+    cp /etc/sysctl.conf /etc/sysctl.conf.$(date +%F)
+    echo "***************************************"
+    echo "net.ipv4.tcp_fin_timeout = 2
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 16384
+net.ipv4.tcp_max_tw_buckets = 36000
+net.ipv4.tcp_syn_retries = 1
+net.ipv4.tcp_synack_retries = 1
+net.ipv4.tcp_max_orphans = 16384
+net.ipv4.tcp_rmem=4096 87380 4194304
+net.ipv4.tcp_wmem=4096 16384 4194304
+net.ipv4.tcp_keepalive_time = 600 
+net.ipv4.tcp_keepalive_probes = 5 
+net.ipv4.tcp_keepalive_intvl = 15 
+net.ipv4.route.gc_timeout = 100
+net.ipv4.ip_local_port_range = 1024 65000 
+net.ipv4.icmp_echo_ignore_broadcasts=1
+net.core.somaxconn = 16384 
+net.core.netdev_max_backlog = 16384"
+    echo "***************************************"
+    read -p "is this ok?[y/n]:" option
+    if [[ $option == "y" || $option == "Y" ]]; then
+      cat >> /etc/sysctl.conf<<EOF
+net.ipv4.tcp_fin_timeout = 2
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 16384
+net.ipv4.tcp_max_tw_buckets = 36000
+net.ipv4.tcp_syn_retries = 1
+net.ipv4.tcp_synack_retries = 1
+net.ipv4.tcp_max_orphans = 16384
+net.ipv4.tcp_rmem=4096 87380 4194304
+net.ipv4.tcp_wmem=4096 16384 4194304
+net.ipv4.tcp_keepalive_time = 600 
+net.ipv4.tcp_keepalive_probes = 5 
+net.ipv4.tcp_keepalive_intvl = 15 
+net.ipv4.route.gc_timeout = 100
+net.ipv4.ip_local_port_range = 1024 65000 
+net.ipv4.icmp_echo_ignore_broadcasts=1
+net.core.somaxconn = 16384 
+net.core.netdev_max_backlog = 16384
+EOF
+      sysctl -p && action "kernel setting successfully" /bin/true || action "kernel setting failed" /bin/false
+    fi
+  fi
   echo "========================================================="
   echo ""
   sleep 2
@@ -164,6 +337,10 @@ configOuterSyncTime() {
   cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
   NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l`
   if [[ $NTPDATE == 0 ]]; then
+    yum list installed | grep -w ntpdate > /dev/null 2>&1
+    if [[ $? != 0 ]]; then
+      yum install ntpdate -y
+    fi
     echo "#times sync by script at $(date +%F)" >> /var/spool/cron/root
     echo "*/5 * * * * /usr/sbin/ntpdate time.windows.com &>/dev/null" >> /var/spool/cron/root
   fi
@@ -197,25 +374,28 @@ configInnerSyncTime() {
     esac
   done
   echo -e "\n*****config ntp server($ntpserver)*****\n"
-  ssh -tt root@$ntpserver '\
+  ssh -o StrictHostKeyChecking=no root@$ntpserver '\
   rpm -q ntp > /dev/null || yum list installed | grep -w ntp > /dev/null;
   if [[ $? != 0 ]]; then
-    echo -e \"\n******install ntpd*******\";
+    echo -e "\n******install ntpd*******\n";
     yum install ntp -y;
   fi
   if [[ $? == 0 ]]; then
     ls /etc/ntp.conf.origin > /dev/null 2>&1;
-    if [[ $? == 1 ]]; then
-      cp /etc/ntp.conf /etc/ntp.conf.init > /dev/null 2>&1;
+    if [[ $? != 0 ]]; then
+      cp /etc/ntp.conf /etc/ntp.conf.origin> /dev/null 2>&1;
     else
-      mv /etc/ntp.conf /etc/ntp.conf.$(date +%F) > /dev/null 2>&1;
+      cp /etc/ntp.conf /etc/ntp.conf.$(date +%F) > /dev/null 2>&1;
     fi
     cat > /etc/ntp.conf <<EOF
 driftfile /var/lib/ntp/drift
-restrict default ignore
+restrict default kod nomodify notrap nopeer noquery
+restrict 192.0.0.0 mask 255.0.0.0 nomodify notrap
+restrict 172.0.0.0 mask 255.0.0.0 nomodify notrap
 restrict 127.0.0.1 
 restrict ::1
 server 127.127.1.0
+fudge  127.127.1.0 stratum 10
 includefile /etc/ntp/crypto/pw
 keys /etc/ntp/keys
 disable monitor
@@ -223,9 +403,46 @@ EOF
     systemctl enable ntpd;
     systemctl start  ntpd;
   else
-    echo -e \"\n******install ntpd failed******\n\";
+    echo -e "\n******install ntpd failed******\n";
   fi
   '
+  local counts=${#iplist[@]}
+  for ((i=0; i<counts; i++))
+  do
+    if [[ ${iplist[i] == $ntpserver} ]]; then
+      echo -e "\nip of client(${iplist[i]}) is same as ntpserver,skip this ip\n"
+      continue
+    fi
+    ssh -o StrictHostKeyChecking=no root@${iplist[i]} "
+    rpm -q ntp > /dev/null || yum list installed | grep -w ntp > /dev/null;
+    if [[ \$? != 0 ]]; then
+      echo -e \"\n******install ntpd*******\n\";
+      yum install ntp -y;
+    fi
+    if [[ \$? == 0 ]]; then
+      ls /etc/ntp.conf.origin > /dev/null 2>&1;
+      if [[ \$? != 0 ]]; then
+        cp /etc/ntp.conf /etc/ntp.conf.origin> /dev/null 2>&1;
+      else
+        cp /etc/ntp.conf /etc/ntp.conf.$(date +%F) > /dev/null 2>&1;
+      fi
+      cat > /etc/ntp.conf <<EOF
+driftfile /var/lib/ntp/drift
+restrict default nomodify notrap nopeer noquery
+restrict 127.0.0.1 
+restrict ::1
+server $ntpserver 
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+disable monitor
+EOF
+      systemctl enable ntpd;
+      systemctl start  ntpd;
+    else
+        echo -e \"\n******install ntpd failed******\n\";
+    fi
+    "
+  done
   echo "========================================================="
   echo ""
   sleep 2
@@ -244,18 +461,14 @@ readName() {
   step=$1
 }
 readIp() {
-  if [[ $2 != "" ]]; then
-    read -p "input $2, for example ip1,ip2,ip3:" ips
-  else
-    read -p "input ip address list, for example ip1,ip2,ip3:" ips
-  fi
+  read -p "input $2, for example ip1,ip2,ip3:" ips
   if [[ $ips == "" ]]; then
     read -p "input ip address lists is null, quit?[y/n]:" option
     if [[ $option == "y" || $option == "Y" ]]; then
       step="quit"
       return 1
     else
-      readIp
+      readIp $1 $2
     fi
   fi
   iplist=(${ips//,/ })
@@ -284,13 +497,14 @@ readIp() {
   done
   step=$1
 }
+
 configAuthorization() {
   echo "==================Authorization=========================="
   while true
   do
     case $step in
       "ip")
-        readIp "auth"
+        readIp "auth" "ip list"
         ;;
       "auth")
         break
@@ -344,182 +558,37 @@ configAuthorization() {
   echo "========================================================="
 }
 
-#install tools
-installTools() {
-  echo "======install sysstat|dos2unix|openssl|openssh|bash======"
-  ping -c 2 mirrors.aliyun.com
-  sleep 1
-  yum install sysstat dos2unix openssl openssh bash -y
-  sleep 1
-  action "install tools successfully" /bin/true
-  echo "========================================================="
-  echo ""
-  sleep 2
-}
-#add user and give sudoers
-addUser() {
-  echo "========================add user========================="
-  #add user
-  while true
-  do  
-    read -p "user name:" name 
-    NAME=`awk -F':' '{print $1}' /etc/passwd | grep -wx $name 2>/dev/null | wc -l`
-    if [[ $NAME == "" ]]; then
-      echo "user name is null, please input angain"
-      continue
-    elif [[ $NAME == 1 ]]; then
-      echo "user name is used, please choose another"
-      continue
-    fi
-    useradd $name
-    break
-  done
-  #create password
-  while true
-  do
-    read -p "change password for $name:" pass1
-    if [[ $pass1 == "" ]]; then
-      echo "password is null, please input again"
-      continue
-    fi
-    read -p "input password angin:" pass2
-    if [[ $pass1 != $pass2 ]]; then
-      echo "two inputs are inconsistent, please input again"
-      continue
-    fi
-    echo "$pass2" | passwd --stdin $name
-    break
-  done
-  sleep 1
 
-  while true
+
+# set backspace as erase for root and all login users(/home/*)
+configBackspace() {
+  echo "================config backspace as erase================"
+  echo "config for user:root"
+  erase=`grep -wx "stty erase ^H" /root/.bash_profile | wc -l`
+  if [[ $erase < 1 ]]; then
+    cp /root/.bash_profile  /root/.bash_profile.$(date +%F)
+    echo "stty erase ^H" >> /root/.bash_profile
+    source /root/.bash_profile
+  fi
+  for user in `ls /home`
   do
-    read -p "add $name to visudo?[y/n]:" option
-    if [[ $option == "" ]]; then
-      echo "please input y or n"
-      continue
-    fi
-    if [[ $option == "y" ]]; then
-      #add visudo
-      echo "#####add visudo#####"
-      cp /etc/sudoers /etc/sudoers.$(date +%F)
-      SUDO=`grep -w "$name" /etc/sudoers | wc -l`
-      if [[ $SUDO == 0 ]]; then
-          echo "$name  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers
-          echo 'run cmd:tail -1 /etc/sudoers'
-          tail -1 /etc/sudoers
-          # grep -w "$name" /etc/sudoers
-          sleep 1
+    id $user > /dev/null 2>&1
+    if [[ $? == 0 ]]; then
+      cat /etc/passwd | grep -w "$user" | grep "nologin" > /dev/null
+      if [[ $? == 0 ]]; then
+        continue
       fi
-      action "add user $name successfully"  /bin/true
-      break
+      echo "config for user:${user}"
+      erase=`grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l`
+      if [[ $erase < 1 ]]; then
+        cp /home/$user/.bash_profile /home/$user/.bash_profile.$(date +%F)
+        echo "stty erase ^H" >> /home/$user/.bash_profile
+        # source /home/$user/.bash_profile
+      fi
     fi
   done
-  echo "========================================================="
-  echo ""
-  sleep 2
-}
 
-#Adjust the file descriptor(limits.conf)
-configLimits() {
-  echo "===============config file descriptor===================="
-  LIMIT=`grep nofile /etc/security/limits.conf | grep -v "^#" | wc -l`
-  if [[ $LIMIT == 0 ]]; then
-    echo ""
-    echo "***limit settting****"
-    echo "* soft nofile 65535 *"
-    echo "* hard nofile 65535 *"
-    echo "* soft nproc  65535 *"
-    echo "* hard nproc  65535 *"
-    echo "*********************"
-    echo ""
-    cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
-    cat >> /etc/security/limits.conf<<EOF
-* soft nofile 65535 
-* hard nofile 65535
-* soft nproc  65535
-* hard nproc  65535
-EOF
-  fi
-  echo 'run cmd:tail -4 /etc/security/limits.conf'
-  tail -4 /etc/security/limits.conf
-  ulimit -HSn 65535
-  echo 'run cmd:ulimit -n'
-  ulimit -n
-  action "config limit to 65535 successfully" /bin/true
-  echo "========================================================="
-  echo ""
-  sleep 2
-}
-
-
-#Optimizing the system kernel
-configSysctl() {
-  echo "====================config sysctl========================"
-  SYSCTL=`grep "net.ipv4.tcp" /etc/sysctl.conf | wc -l`
-  if [[ $SYSCTL < 10 ]]; then
-    cp /etc/sysctl.conf /etc/sysctl.conf.$(date +%F)
-    echo "***************************************"
-    echo "net.ipv4.tcp_fin_timeout = 2
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_max_syn_backlog = 16384
-net.ipv4.tcp_max_tw_buckets = 36000
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_max_orphans = 16384
-net.ipv4.tcp_rmem=4096 87380 4194304
-net.ipv4.tcp_wmem=4096 16384 4194304
-net.ipv4.tcp_keepalive_time = 600 
-net.ipv4.tcp_keepalive_probes = 5 
-net.ipv4.tcp_keepalive_intvl = 15 
-net.ipv4.route.gc_timeout = 100
-net.ipv4.ip_local_port_range = 1024 65000 
-net.ipv4.icmp_echo_ignore_broadcasts=1
-net.core.somaxconn = 16384 
-net.core.netdev_max_backlog = 16384"
-    echo "***************************************"
-    read -p "ok?[y/n]:" option
-    if [[ $option == "y" || $option == "Y" ]]; then
-      cat >> /etc/sysctl.conf<<EOF
-net.ipv4.tcp_fin_timeout = 2
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_max_syn_backlog = 16384
-net.ipv4.tcp_max_tw_buckets = 36000
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_max_orphans = 16384
-net.ipv4.tcp_rmem=4096 87380 4194304
-net.ipv4.tcp_wmem=4096 16384 4194304
-net.ipv4.tcp_keepalive_time = 600 
-net.ipv4.tcp_keepalive_probes = 5 
-net.ipv4.tcp_keepalive_intvl = 15 
-net.ipv4.route.gc_timeout = 100
-net.ipv4.ip_local_port_range = 1024 65000 
-net.ipv4.icmp_echo_ignore_broadcasts=1
-net.core.somaxconn = 16384 
-net.core.netdev_max_backlog = 16384
-EOF
-      sysctl -p
-      action "kernel setting successfully" /bin/true
-    fi
-  fi
-  echo "========================================================="
-  echo ""
-  sleep 2
-}
-
-#setting history
-configHistory() {
-  echo "=============history command size=2000==================="
-  # echo "TMOUT=600" >> /etc/profile
-  echo "HISTSIZE=2000" >> /etc/profile
-  echo "HISTTIMEFORMAT='%F %T `whoami`=> '" >> /etc/profile
-  source /etc/profile
-  action "config history successfully" /bin/true
+  action "config backspace to erase successfully" /bin/true
   echo "========================================================="
   echo ""
   sleep 2
@@ -545,7 +614,7 @@ cat << EOF
 |-----------------------------------------------------------
 EOF
 
-while true;
+while true
 do
   echo ""
   cat <<EOF
@@ -567,7 +636,7 @@ do
 (13) 设置backspace为删除键
 (0)  退出 
 EOF
-  read -p "Please enter your Choice[0-13]: " input1
+  read -p "Please enter your choice[0-13]: " input1
   case "$input1" in
     0)
       clear
@@ -614,7 +683,7 @@ EOF
       ;;
     *)
       echo "----------------------------------"
-      echo "|   Please Enter Right Choice!   |"
+      echo "|   Please enter right choice!   |"
       echo "----------------------------------"
       sleep 1
       # for i in `seq -w 2 -1 1`
