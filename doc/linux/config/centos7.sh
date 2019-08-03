@@ -5,7 +5,7 @@
 # 2.compatible with CentOS7.x
 # author:zhanghao
 # groupId:dev2
-# version 1.0  20190731
+# version 1.0  20190731 init
 #########################################################
 #Source function library.
 . /etc/init.d/functions
