@@ -140,15 +140,40 @@ configYum() {
 
 #Charset zh_CN.UTF-8
 configCharset() {
-  echo "=============change charset to zh_CN.UTF-8==============="
-  cp /etc/locale.conf  /etc/locale.conf.$(date +%F)
-  cat > /etc/locale.conf<<EOF
-LANG="zh_CN.UTF-8"
-#LANG="en_US.UTF-8"
-EOF
-  source /etc/locale.conf
-  grep LANG /etc/locale.conf
-  action "change charset to zh_CN.UTF-8 successfully" /bin/true
+  echo "==============config LC_CTYPE=zh_CN.UTF-8================"
+
+  #config root
+  linenum=$(grep -wn "^LC_CTYPE" ~/.bash_profile | awk -F ':' '{print $1}')
+  if [[ $linenum != 0 && $linenum != "" ]]; then
+    sed -in "${linenum}c LC_CTYPE=zh_CN.UTF-8" ~/.bash_profile 
+  else
+    echo "LC_CTYPE=zh_CN.UTF-8" >> ~/.bash_profile 
+  fi
+  . ~/.bash_profile
+  action "config root with LC_CTYPE=zh_CN.UTF-8 successfully" /bin/true 
+  #config other users
+  read -p "config other users with LC_CTYPE?[y/n]:" option 
+  if [[ $option == "y" || $option == "Y" ]]; then
+    for user in `ls /home`
+    do
+      id $user > /dev/null 2>&1
+      if [[ $? == 0 ]]; then
+        cat /etc/passwd | grep -w "$user" | grep "nologin" > /dev/null
+        if [[ $? == 0 ]]; then
+          continue
+        fi
+        echo "config for user:${user}"
+        linenum=$(grep -wn "^LC_CTYPE" /home/$user/.bash_profile | awk -F ':' '{print $1}')
+        if [[ $linenum != 0 && $linenum != "" ]]; then
+          sed -in "${linenum}c LC_CTYPE=zh_CN.UTF-8" /home/$user/.bash_profile 
+        else
+          echo "LC_CTYPE=zh_CN.UTF-8" >> /home/$user/.bash_profile 
+        fi
+        . /home/$user/.bash_profile
+      fi
+    done
+  fi
+  action "config other users with LC_CTYPE=zh_CN.UTF-8 successfully" /bin/true 
   echo "========================================================="
   echo ""
   sleep 2
@@ -619,11 +644,11 @@ do
   echo ""
   cat <<EOF
 *==========================================================*
-*                    Dev2 Linux Config                     *
+*                    Dev2 Linux Utility                    *
 *==========================================================*
 (1)  新建用户并选择是否加入sudoers
 (2)  外网配置YUM源(aliyun)
-(3)  配置中文字符集(zh_CN.UTF-8)
+(3)  配置中文字符集(LC_CTYPE=zh_CN.UTF-8)
 (4)  禁用SELINUX及关闭防火墙
 (5)  修改ssh默认端口为22
 (6)  设置默认历史记录数(command history=2000)
