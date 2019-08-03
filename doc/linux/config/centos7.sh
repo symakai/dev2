@@ -5,7 +5,7 @@
 # 2.compatible with CentOS7.x
 # author:zhanghao
 # groupId:dev2
-# version 1.0  20190731 init
+# version 1.0.0  20190731 init
 #########################################################
 #Source function library.
 . /etc/init.d/functions
@@ -229,7 +229,6 @@ configHistory() {
   linenum=$(grep -wn "^HISTTIMEFORMAT" /etc/profile | awk -F ':' '{print $1}')
   if [[ $linenum != 0 && $linenum != "" ]]; then
     sed -in "${linenum}c HISTTIMEFORMAT='%F %T \`whoami\`=> '" /etc/profile
-    # sed -i "s/HISTTIMEFORMAT=$format/$newformat/g" /etc/profile
   else
     echo "HISTTIMEFORMAT='%F %T `whoami`=> '" >> /etc/profile
   fi
@@ -261,8 +260,6 @@ configLimits() {
     echo "***limit settting****"
     echo "* soft nofile 65535 *"
     echo "* hard nofile 65535 *"
-    # echo "* soft nproc  65535 *"
-    # echo "* hard nproc  65535 *"
     echo "*********************"
     echo ""
     cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
@@ -621,46 +618,46 @@ configBackspace() {
 
 clear
 echo ""
-cat << EOF
-|--------------------System Infomation----------------------
-| DATE           :$DATE
-| HOSTNAME       :$HOSTNAME
-| USER           :$USER
-| IP             :$IPADDR
-| DISK_USED      :$DISK_SDA
-| CPU_PROCESSORS :$CPU_PROCESSORS
-| CPU_CORES      :$CPU_CORES
-| CPU_MODEL      :$CPU_MODEL
-| TOTAL MEMORY   :$MEMORY
-| CNETOS         :$CENTOS_VERSION
-| KERNEL         :$KERNEL_VERSION
-| JAVA           :$JAVA_VERSION
-| GCC            :$GCC_VERSION
-|-----------------------------------------------------------
-EOF
+# cat <<EOF
+echo -e "\033[36m|--------------------System Infomation----------------------"
+echo -e "\033[36m| DATE           :$DATE"
+echo -e "\033[36m| HOSTNAME       :$HOSTNAME"
+echo -e "\033[36m| USER           :$USER"
+echo -e "\033[36m| IP             :$IPADDR"
+echo -e "\033[36m| DISK_USED      :$DISK_SDA"
+echo -e "\033[36m| CPU_PROCESSORS :$CPU_PROCESSORS"
+echo -e "\033[36m| CPU_CORES      :$CPU_CORES"
+echo -e "\033[36m| CPU_MODEL      :$CPU_MODEL"
+echo -e "\033[36m| TOTAL MEMORY   :$MEMORY"
+echo -e "\033[36m| CNETOS         :$CENTOS_VERSION"
+echo -e "\033[36m| KERNEL         :$KERNEL_VERSION"
+echo -e "\033[36m| JAVA           :$JAVA_VERSION"
+echo -e "\033[36m| GCC            :$GCC_VERSION"
+echo -e "\033[36m|-----------------------------------------------------------\033[0m"
+# EOF
 
 while true
 do
   echo ""
-  cat <<EOF
-*==========================================================*
-*                    Dev2 Linux Utility                    *
-*==========================================================*
-(1)  新建用户并选择是否加入sudoers
-(2)  外网配置YUM源(aliyun)
-(3)  配置中文字符集(LC_CTYPE=zh_CN.UTF-8)
-(4)  禁用SELINUX及关闭防火墙
-(5)  修改ssh默认端口为22
-(6)  设置默认历史记录数(command history=2000)
-(7)  安装系统工具(dos2unix|sysstat|openssl|openssh|bash)
-(8)  配置打开文件与进程数量(nofile&&nproc=65535)
-(9)  系统内核调优(使用前需确认默认参数)
-(10) 设置外网时间同步
-(11) 设置内网集群时间同步
-(12) 集群环境双向授信 
-(13) 设置backspace为删除键
-(0)  退出 
-EOF
+  # cat <<EOF
+echo -e "\033[36m*==========================================================*"
+echo -e "\033[36m*                    Dev2 Linux Utility                    *"
+echo -e "\033[36m*==========================================================*"
+echo -e "\033[36m(1)  新建用户并选择是否加入sudoers"
+echo -e "\033[36m(2)  外网配置YUM源(aliyun)"
+echo -e "\033[36m(3)  配置中文字符集(LC_CTYPE=zh_CN.UTF-8)"
+echo -e "\033[36m(4)  禁用SELINUX及关闭防火墙"
+echo -e "\033[36m(5)  修改ssh默认端口为22"
+echo -e "\033[36m(6)  设置默认历史记录数(command history=2000)"
+echo -e "\033[36m(7)  安装系统工具(dos2unix|sysstat|openssl|openssh|bash)"
+echo -e "\033[36m(8)  配置打开文件与进程数量(nofile&&nproc=65535)"
+echo -e "\033[36m(9)  系统内核调优(使用前需确认默认参数)"
+echo -e "\033[36m(10) 设置外网时间同步"
+echo -e "\033[36m(11) 设置内网集群时间同步"
+echo -e "\033[36m(12) 集群环境双向授信 "
+echo -e "\033[36m(13) 设置backspace为删除键"
+echo -e "\033[36m(0)  退出 \033[0m"
+# EOF
   read -p "Please enter your choice[0-13]: " input1
   case "$input1" in
     0)
