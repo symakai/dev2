@@ -356,13 +356,13 @@ EOF
 #time sync
 configOuterSyncTime() {
   echo "================config internet time sync================"
-  cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
   NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l`
   if [[ $NTPDATE == 0 ]]; then
     yum list installed | grep -w ntpdate > /dev/null 2>&1
     if [[ $? != 0 ]]; then
       yum install ntpdate -y
     fi
+    cp /var/spool/cron/root /var/spool/cron/root.$(date +%F) 2>/dev/null
     echo "#times sync by script at $(date +%F)" >> /var/spool/cron/root
     echo "*/5 * * * * /usr/sbin/ntpdate time.windows.com &>/dev/null" >> /var/spool/cron/root
   fi
@@ -412,8 +412,6 @@ configInnerSyncTime() {
     cat > /etc/ntp.conf <<EOF
 driftfile /var/lib/ntp/drift
 restrict default kod nomodify notrap nopeer noquery
-restrict 192.0.0.0 mask 255.0.0.0 nomodify notrap
-restrict 172.0.0.0 mask 255.0.0.0 nomodify notrap
 restrict 127.0.0.1 
 restrict ::1
 server 127.127.1.0
@@ -431,40 +429,35 @@ EOF
   local counts=${#iplist[@]}
   for ((i=0; i<counts; i++))
   do
-    if [[ ${iplist[i] == $ntpserver} ]]; then
-      echo -e "\nip of client(${iplist[i]}) is same as ntpserver,skip this ip\n"
+    if [[ ${iplist[i]} == $ntpserver ]]; then
+      echo -e "\nclient ip(${iplist[i]}) is same as ntpserver,skip this ip\n"
       continue
     fi
+    echo -e "\n*****config ntp client(${iplist[i]})******\n"
     ssh -o StrictHostKeyChecking=no root@${iplist[i]} "
-    rpm -q ntp > /dev/null || yum list installed | grep -w ntp > /dev/null;
+    rpm -q ntpdate > /dev/null || yum list installed | grep -w ntpdate > /dev/null;
     if [[ \$? != 0 ]]; then
-      echo -e \"\n******install ntpd*******\n\";
-      yum install ntp -y;
+      echo -e \"\n******install ntpdate*******\n\";
+      yum install ntpate -y;
     fi
     if [[ \$? == 0 ]]; then
-      ls /etc/ntp.conf.origin > /dev/null 2>&1;
-      if [[ \$? != 0 ]]; then
-        cp /etc/ntp.conf /etc/ntp.conf.origin> /dev/null 2>&1;
+      /usr/sbin/ntpdate $ntpserver
+      cp /var/spool/cron/root /var/spool/cron/root.\$(date +%F) 2>/dev/null
+      line=\$(grep -nw '/usr/sbin/ntpdate' /var/spool/cron/root | awk -F':' '{print \$1}')
+      if [[ \$line == \"\" ]]; then
+        echo \"*/30 * * * * /usr/sbin/ntpdate $ntpserver\" >> /var/spool/cron/root
       else
-        cp /etc/ntp.conf /etc/ntp.conf.$(date +%F) > /dev/null 2>&1;
+        sed -i \"\${line}c */30 * * * * /usr/sbin/ntpdate $ntpserver\" /var/spool/cron/root
       fi
-      cat > /etc/ntp.conf <<EOF
-driftfile /var/lib/ntp/drift
-restrict default nomodify notrap nopeer noquery
-restrict 127.0.0.1 
-restrict ::1
-server $ntpserver 
-includefile /etc/ntp/crypto/pw
-keys /etc/ntp/keys
-disable monitor
-EOF
-      systemctl enable ntpd;
-      systemctl start  ntpd;
+      echo \"run remote cmd: crontab -l\"
+      crontab -l
     else
-        echo -e \"\n******install ntpd failed******\n\";
+      echo -e \"\n******install ntpdate failed******\n\"
     fi
     "
   done
+  [ $? == 0 ] && action "config intranet time sync completely" /bin/true || action "config intranet time sync failed" /bin/false
+  echo 
   echo "========================================================="
   echo ""
   sleep 2
@@ -552,8 +545,8 @@ configAuthorization() {
     echo "* 2.please input ip list that you want to authorise"
     echo "* 3.please input [enter|y] according to the prompt"
     echo "* 4.if authorization does not work"
-    echo "*   a)please confirm permission of ~/.ssh/authorized_keys is 600(-rw-------)"
-    echo "*   b)please confirm permission of /home/xxx is 700(drwx------)"
+    echo "*   a)please confirm permission of ~/.ssh/authorized_keys is 0600(-rw-------)"
+    echo "*   b)please confirm permission of /home/xxx is 0700(drwx------)"
     echo "******************************************************************************"
     echo ""
     local counts=${#iplist[@]}
