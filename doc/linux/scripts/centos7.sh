@@ -556,7 +556,7 @@ configAuthorization() {
       for ((j=0; j<counts; j++))
       do
         echo -e "\n\033[36m*****Authorise ip:${iplist[i]}=>ip:${iplist[j]}*****\033[0m"
-        echo -e "\033[36m*****login ip:${iplist[i]} with $name******\033[0m\n"
+        echo -e "\033[36m*****login ip:${iplist[i]} as $name******\033[0m\n"
         ssh -tt -o StrictHostKeyChecking=no $name@${iplist[i]} "
         ls ~/.ssh/id_rsa.pub > /dev/null 2>&1
         if [[ \$? != 0 ]]; then
