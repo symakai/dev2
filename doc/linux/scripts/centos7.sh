@@ -515,6 +515,16 @@ readIp() {
 
 configAuthorization() {
   echo "==================Authorization=========================="
+  echo ""
+  echo "*************************************************************************************************"
+  echo "* 1.input user name that you want to authorise,for example dce or other user"
+  echo "* 2.input ip list that you want to authorise"
+  echo "* 3.please input [enter] according to the prompt,don't input [y] when prompt Overwrite (y/n)?"
+  echo "* 4.if authorization does not work"
+  echo "*   a)please confirm permission of ~/.ssh/authorized_keys is 0600(-rw-------)"
+  echo "*   b)please confirm permission of /home/xxx is 0700(drwx------)"
+  echo "*************************************************************************************************"
+  echo ""
   while true
   do
     case $step in
@@ -539,33 +549,25 @@ configAuthorization() {
     return 1
   fi
   if [[ $step == "auth" ]]; then
-    echo ""
-    echo "******************************************************************************"
-    echo "* 1.please input user name"
-    echo "* 2.please input ip list that you want to authorise"
-    echo "* 3.please input [enter|y] according to the prompt"
-    echo "* 4.if authorization does not work"
-    echo "*   a)please confirm permission of ~/.ssh/authorized_keys is 0600(-rw-------)"
-    echo "*   b)please confirm permission of /home/xxx is 0700(drwx------)"
-    echo "******************************************************************************"
-    echo ""
     local counts=${#iplist[@]}
     #cat ~/.ssh/id_rsa.pub | ssh user@machine "mkdir ~/.ssh; cat >> ~/.ssh/authorized_keys"
     for ((i=0; i<counts; i++))
     do
       for ((j=0; j<counts; j++))
       do
-        if [[ $i != $j ]]; then
-          echo -e "\n*****Authorise ip:${iplist[i]}=>ip:${iplist[j]}*****"
-          echo -e "*****login ip:${iplist[i]} with $name******\n"
-          ssh -tt -o StrictHostKeyChecking=no $name@${iplist[i]} "\
-          echo -e \"\n*****generate rsa key*****\n\" && \
-          ssh-keygen -t rsa && \
-          echo -e \"\n*****copy id_rsa.pub to ip:${iplist[j]}*****\n\" && \
-          ssh-copy-id $name@${iplist[j]} && exit"
-          echo ""
-          sleep 2 
+        echo -e "\n\033[36m*****Authorise ip:${iplist[i]}=>ip:${iplist[j]}*****\033[0m"
+        echo -e "\033[36m*****login ip:${iplist[i]} with $name******\033[0m\n"
+        ssh -tt -o StrictHostKeyChecking=no $name@${iplist[i]} "
+        ls ~/.ssh/id_rsa.pub > /dev/null 2>&1
+        if [[ \$? != 0 ]]; then
+          echo -e \"\n\033[36m*****generate rsa key*****\033[0m\n\";
+          ssh-keygen -t rsa;
         fi
+        echo -e \"\n\033[36m*****copy id_rsa.pub to ip:${iplist[j]}*****\033[0m\n\";
+        ssh-copy-id -o StrictHostKeyChecking=no ${name}@${iplist[j]};
+        "
+        echo ""
+        sleep 1 
       done
     done
   fi
@@ -611,7 +613,6 @@ configBackspace() {
 
 clear
 echo ""
-# cat <<EOF
 echo -e "\033[36m|--------------------System Infomation----------------------"
 echo -e "\033[36m| DATE           :$DATE"
 echo -e "\033[36m| HOSTNAME       :$HOSTNAME"
@@ -627,30 +628,29 @@ echo -e "\033[36m| KERNEL         :$KERNEL_VERSION"
 echo -e "\033[36m| JAVA           :$JAVA_VERSION"
 echo -e "\033[36m| GCC            :$GCC_VERSION"
 echo -e "\033[36m|-----------------------------------------------------------\033[0m"
-# EOF
 
 while true
 do
   echo ""
-  # cat <<EOF
-echo -e "\033[36m*==========================================================*"
-echo -e "\033[36m*                    Dev2 Linux Utility                    *"
-echo -e "\033[36m*==========================================================*"
-echo -e "\033[36m(1)  新建用户并选择是否加入sudoers"
-echo -e "\033[36m(2)  外网配置YUM源(aliyun)"
-echo -e "\033[36m(3)  配置中文字符集(LC_CTYPE=zh_CN.UTF-8)"
-echo -e "\033[36m(4)  禁用SELINUX及关闭防火墙"
-echo -e "\033[36m(5)  修改ssh默认端口为22"
-echo -e "\033[36m(6)  设置默认历史记录数(command history=2000)"
-echo -e "\033[36m(7)  安装系统工具(dos2unix|sysstat|openssl|openssh|bash)"
-echo -e "\033[36m(8)  配置打开文件与进程数量(nofile&&nproc=65535)"
-echo -e "\033[36m(9)  系统内核调优(使用前需确认默认参数)"
-echo -e "\033[36m(10) 设置外网时间同步"
-echo -e "\033[36m(11) 设置内网集群时间同步"
-echo -e "\033[36m(12) 集群环境双向授信 "
-echo -e "\033[36m(13) 设置backspace为删除键"
-echo -e "\033[36m(0)  退出 \033[0m"
-# EOF
+  echo -e "\033[36m*==========================================================*"
+  echo -e "\033[36m*                    Dev2 Linux Utility                    *"
+  echo -e "\033[36m*                                                          *"
+  echo -e "\033[36m* Color Support:secureCRT->Terminal->Emulation->ANSI Color *"
+  echo -e "\033[36m*==========================================================*"
+  echo -e "\033[36m(1)  新建用户并选择是否加入sudoers"
+  echo -e "\033[36m(2)  外网配置YUM源(aliyun) *内网不要运行!!!*"
+  echo -e "\033[36m(3)  配置中文字符集(LC_CTYPE=zh_CN.UTF-8)"
+  echo -e "\033[36m(4)  禁用SELINUX及关闭防火墙"
+  echo -e "\033[36m(5)  修改ssh默认端口为22"
+  echo -e "\033[36m(6)  设置默认历史记录数(command history=2000)"
+  echo -e "\033[36m(7)  安装系统工具(dos2unix|sysstat|openssl|openssh|bash)"
+  echo -e "\033[36m(8)  配置打开文件与进程数量(nofile&&nproc=65535)"
+  echo -e "\033[36m(9)  系统内核调优(使用前需确认默认参数)"
+  echo -e "\033[36m(10) 设置外网时间同步"
+  echo -e "\033[36m(11) 设置内网集群时间同步"
+  echo -e "\033[36m(12) 集群环境双向授信 "
+  echo -e "\033[36m(13) 设置backspace为删除键"
+  echo -e "\033[36m(0)  退出 \033[0m"
   read -p "Please enter your choice[0-13]: " input1
   case "$input1" in
     0)
