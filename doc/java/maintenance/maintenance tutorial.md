@@ -1,4 +1,5 @@
 # Dev2 Maintenance Tutorial
+
 - [Dev2 Maintenance Tutorial](#dev2-maintenance-tutorial)
   - [Goal](#goal)
   - [Commands](#commands)
@@ -28,12 +29,18 @@
     - [Dubug](#dubug)
       - [jdb](#jdb)
   - [Arthas](#arthas)
-## Goal 
+
+## Goal
+
 - 如何在linux上进行问题分析
 - java命令及工具的初步了解和掌握
+
 ## Commands
+
 ### CPU
+
 #### top
+
 - Description：top程序提供了运行系统的动态实时视图。它可以显示系统摘要信息以及当前由Linux内核管理的进程或线程列表。
 - Synopsis
   - top -hv|-bcHiOSs -d secs -n max -u|U user -p pid -o fld -w [cols]
@@ -45,7 +52,7 @@
   - H：线程显示
   - E：扩展模式显示summary的内存数据
   - e：扩展模式显示task window的内存数据
-  - k：kill signal(15, 9) 
+  - k：kill signal(15, 9)
   - L：搜索关键字 - &：find next
   - f：添加field, d|space->q|esc
   - p：启动参数，监控对一个的pid进程
@@ -53,8 +60,11 @@
   - load average：1min 5min 15min
   - Mem：free+buff+cache, see also free(1)
   - RES：Resident Memory Size，某一个正在运行的进程使用的非交换区的物理内存大小
+
 ### Disk
+
 #### df
+
 - Description：report file system disk space usage
 - Synposis：df [OPTION]... [FILE]...
 - Command line options
@@ -62,35 +72,45 @@
   - T：show type
 - Pay Attention to：
   - 查询某个目录mount on在哪里？df -h /home/dce
+
 #### du
+
 - Description： estimate file space usage
 - Synposis：df [OPTION]... [FILE]...
 - Command line options
   - h：human
   - s：summarize
 - Pay Attention to：none
+
 #### ls/ll
-- h：human 
+
+- h：human
+
 ### Network
+
 #### sar
+
 - Description： Collect, report, or save system activity information
 - Synposis：man sar
 - Command line options
   - d：report activity for each block device, see also iostat
   - n：report network statistics
-- Pratice
+- Practice
   - wget https://github.com/apache/flink/archive/release-1.8.1-rc1.tar.gz
   - sar -n DEV 2
+
 ### IO
+
 #### iostat
-- Description：Report Central Processing Unit (CPU) statistics and input/output statistics for devices and partitions 
+
+- Description：Report Central Processing Unit (CPU) statistics and input/output statistics for devices and partitions
 - Synposis：man iostat
 - Command line options
   - h：human
   - p：displays statistics for block devices
   - x：display extended statistics
   - m：megabyte
-- Pratice
+- Practice
   - dd if=/dev/zero of=test bs=1k count=1024000
   - fio -filename=./test -direct=1 -iodepth 1 -rw=randwrite -ioengine=libaio -bs=16k -size=2G -numjobs=1 -runtime=60 -group_reporting -name=mytest
   - iostat -p -h -x 1
@@ -99,19 +119,26 @@
   - r_await：设备可以处理读请求的平均时间（毫秒）
   - w_await：设备可以处理写请求的平均时间（毫秒）
   - %util：Percentage of elapsed time during which I/O requests were issued to the device (bandwidth utilization for the  device). Device saturation occurs when this value is close to 100%
+
 ### Memory
+
 #### free
+
 - Description：Display amount of free and used memory in the system
 - Synposis：free [OPTION]
 - Command line options
   - h：human
 - Pay Attention to：
   - remain = free+buff/cache
+
 ### JVM
+
 #### JVM Memory
+
 - JVM Memory Anatomy
 
 ![mem](mem.png)
+
 - JVM Memory Management
   - Eden
   - Survivor
@@ -131,6 +158,7 @@
   |   -XX:+UseParallelGC    |  Parallel Scavenge+Serial Old  |
   | -XX:+UseParalledlOldGC  | Parallel Scavenge+Parallel Old |
   |      -XX:+UseG1GC       |         java1.7 java8          |
+
 - JVM Memory Parameter
   - -X：非所有JVM支持
   - -XX：非稳定选项
@@ -147,7 +175,7 @@
   |       -Xloggc:log/gc.log        |      config log path       |
   | -XX:+HeapDumpOnOutOfMemoryError | create dump file when oom  |
   |     -XX:+HeapDumpPath=XXXX      |   config dump file path    |
-- Java Type Information 
+- Java Type Information
 
   |       Alias        |   Type    |
   | :----------------: | :-------: |
@@ -161,13 +189,17 @@
   |         S          |   Short   |
   |         [I         | Integer[] |
   | Ljava/lang/String; |  String   |
+
 #### jps
+
 - Description：Lists the instrumented Java Virtual Machines (JVMs) on the target system
 - Synposis：jps [ options ] [ hostid ]
 - Command line
   - m：显示main函数的参数
 - Pay attention to：none
+
 #### jmap
+
 - Description：Prints shared object memory maps or heap memory details for a process, core file, or remote debug server
 - Synposis：jmap [ options ] pid
 - Command line
@@ -181,7 +213,9 @@
 - Pay attention to：none
   - java8之后取消永久代，增加Metaspace区域
   - java9之后默认的GC为G1
+
 #### jstat
+
 - Description：monitors Java Virtual Machine (JVM) statistics
 - Synposis：jstat [ generalOption | outputOptions vmid [ interval[s|ms] [ count ] ]
 - Command line：
@@ -228,8 +262,9 @@
   - jstat -gc pid 250ms 4
 
 #### jstack
+
 - Description：prints Java thread stack traces for a Java process
-- Synposis：jstack [ options ] pid 
+- Synposis：jstack [ options ] pid
 - Command line：
   - l：显示锁信息
 - Pay attention to：
@@ -244,28 +279,37 @@
 | TIMED_WAITING Object.waint() |   对象等待中    |
 |           Blocked            |      阻塞*      |
 |            Parked            |      停止       |
-- Pratice
+
+- Practice
+
   1. 通过top命令找到占用cpu最高进程
   2. top中通过H命令找到占用cpu最高的线程，或者top -Hp pid
   3. 获取16进制的线程id，hex_tid=printf "%x\n" tid
   4. jstack -l pid | grep hex_tid 或者 jstack -l pid | grep status
+
 #### jhat
+
 - Description：analyzes the Java heap
 - Synposis：jhat [ options ] heap-dump-file
 - Command line：none
 - Pay attention to：none
-- Pratice
+- Practice
   - jhat dump
+
 #### jinfo
+
 - Description：generates configuration information
 - Synposis：jinfo [ option ] pid
 - Command line：none
 - Pay attention to：none
-- Pratice
+- Practice
   - jinfo pid | grep version
   - jinfo pid | grep "VM flags"
+
 ### Port
+
 #### netstat
+
 - Command line
   - t：tcp
   - u：udp
@@ -274,11 +318,16 @@
   - p：show related program name
 - Practice
   - netstat -tunlp | grep port
+
 #### lsof
+
 - Practice
   - lsof -i:port
+
 ### Dubug
+
 #### jdb
+
 - Description：finds and fixes bugs in Java platform programs
 - Synposis：jdb [options] [classname]  [arguments]
 - Command line
@@ -315,7 +364,9 @@
   - exit (or quit)：exit debugger
 - Pay attention to
   - javac -g javafile
+
 ## Arthas
+
 - install
   - wget https://alibaba.github.io/arthas/arthas-boot.jar
   - java -jar arthas-boot.jar --repo-mirror aliyun --use-http 或者 ./as.sh --repo-mirror aliyun
