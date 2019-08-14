@@ -26,7 +26,7 @@
     - [Port](#port)
       - [netstat](#netstat)
       - [lsof](#lsof)
-    - [Dubug](#dubug)
+    - [Debug](#debug)
       - [jdb](#jdb)
   - [Arthas](#arthas)
 
@@ -66,7 +66,7 @@
 #### df
 
 - Description：report file system disk space usage
-- Synposis：df [OPTION]... [FILE]...
+- Synopsis：df [OPTION]... [FILE]...
 - Command line options
   - h：human
   - T：show type
@@ -76,7 +76,7 @@
 #### du
 
 - Description： estimate file space usage
-- Synposis：df [OPTION]... [FILE]...
+- Synopsis：df [OPTION]... [FILE]...
 - Command line options
   - h：human
   - s：summarize
@@ -91,7 +91,7 @@
 #### sar
 
 - Description： Collect, report, or save system activity information
-- Synposis：man sar
+- Synopsis：man sar
 - Command line options
   - d：report activity for each block device, see also iostat
   - n：report network statistics
@@ -104,7 +104,7 @@
 #### iostat
 
 - Description：Report Central Processing Unit (CPU) statistics and input/output statistics for devices and partitions
-- Synposis：man iostat
+- Synopsis：man iostat
 - Command line options
   - h：human
   - p：displays statistics for block devices
@@ -125,7 +125,7 @@
 #### free
 
 - Description：Display amount of free and used memory in the system
-- Synposis：free [OPTION]
+- Synopsis：free [OPTION]
 - Command line options
   - h：human
 - Pay Attention to：
@@ -156,7 +156,7 @@
   |    -XX:+UseParNewGC     |       ParNew+Serial Old        |
   | -XX:+UseConcMarkSweepGC |  ParNew+CMS Serial Old backup  |
   |   -XX:+UseParallelGC    |  Parallel Scavenge+Serial Old  |
-  | -XX:+UseParalledlOldGC  | Parallel Scavenge+Parallel Old |
+  | -XX:+UseParallelOldGC   | Parallel Scavenge+Parallel Old |
   |      -XX:+UseG1GC       |         java1.7 java8          |
 
 - JVM Memory Parameter
@@ -193,7 +193,7 @@
 #### jps
 
 - Description：Lists the instrumented Java Virtual Machines (JVMs) on the target system
-- Synposis：jps [ options ] [ hostid ]
+- Synopsis：jps [ options ] [ hostid ]
 - Command line
   - m：显示main函数的参数
 - Pay attention to：none
@@ -201,7 +201,7 @@
 #### jmap
 
 - Description：Prints shared object memory maps or heap memory details for a process, core file, or remote debug server
-- Synposis：jmap [ options ] pid
+- Synopsis：jmap [ options ] pid
 - Command line
   - heap：显示堆内存的垃圾回收信息
   - histo[:live]：堆的直方图
@@ -217,7 +217,7 @@
 #### jstat
 
 - Description：monitors Java Virtual Machine (JVM) statistics
-- Synposis：jstat [ generalOption | outputOptions vmid [ interval[s|ms] [ count ] ]
+- Synopsis：jstat [ generalOption | outputOptions vmid [ interval[s|ms] [ count ] ]
 - Command line：
   - outputOptions
     - class：显示ClassLoad的相关信息；
@@ -249,7 +249,7 @@
 |  OC   |           Current old space capacity (kB)            |
 |  OU   |              Old space utilization (kB)              |
 |  MC   |               Metaspace capacity (kB)                |
-|  MU   |             Metacspace utilization (kB)              |
+|  MU   |             Metaspace utilization (kB)              |
 | CCSC  |         Compressed class space capacity (kB)         |
 | CCSU  |           Compressed class space used (kB)           |
 |  YGC  | Number of young generation garbage collection events |
@@ -264,7 +264,7 @@
 #### jstack
 
 - Description：prints Java thread stack traces for a Java process
-- Synposis：jstack [ options ] pid
+- Synopsis：jstack [ options ] pid
 - Command line：
   - l：显示锁信息
 - Pay attention to：
@@ -273,10 +273,10 @@
 | :--------------------------: | :-------------: |
 |           Deadlock           |      死锁*      |
 |           Runnable           |     运行中      |
-|     Waiting on condtion      |    等待资源*    |
+|     Waiting on condition      |    等待资源*    |
 |   Waiting on monitor entry   | 等待获取监视器* |
 |          Suspended           |      暂停       |
-| TIMED_WAITING Object.waint() |   对象等待中    |
+| TIMED_WAITING Object.wait() |   对象等待中    |
 |           Blocked            |      阻塞*      |
 |            Parked            |      停止       |
 
@@ -290,7 +290,7 @@
 #### jhat
 
 - Description：analyzes the Java heap
-- Synposis：jhat [ options ] heap-dump-file
+- Synopsis：jhat [ options ] heap-dump-file
 - Command line：none
 - Pay attention to：none
 - Practice
@@ -299,7 +299,7 @@
 #### jinfo
 
 - Description：generates configuration information
-- Synposis：jinfo [ option ] pid
+- Synopsis：jinfo [ option ] pid
 - Command line：none
 - Pay attention to：none
 - Practice
@@ -314,7 +314,7 @@
   - t：tcp
   - u：udp
   - n：show number
-  - l：show listend
+  - l：show listened
   - p：show related program name
 - Practice
   - netstat -tunlp | grep port
@@ -324,12 +324,12 @@
 - Practice
   - lsof -i:port
 
-### Dubug
+### Debug
 
 #### jdb
 
 - Description：finds and fixes bugs in Java platform programs
-- Synposis：jdb [options] [classname]  [arguments]
+- Synopsis：jdb [options] [classname]  [arguments]
 - Command line
   - arguments：Arguments passed to the main() method of the class
 - Job Command
