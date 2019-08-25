@@ -60,7 +60,7 @@ checkList=$(find . -name "*.jsp" | xargs grep -li "encrypt")
 let total=0
 let error=0
 let success=0
-starttime=`date +'%Y-%m-%d %H:%M:%S'`
+starttime=$(date +'%Y-%m-%d %H:%M:%S')
 startsecond=$(date --date="$starttime" +%s)
 echo "${starttime}" >> check/log
 for jsp in ${checkList}
@@ -101,7 +101,7 @@ do
     done
     #<input type="hidden" name="action" value="Mb01611_del" />
     # there could be multiple acton in one jsp file
-    for action in `cat check/action` 
+    for action in $(cat check/action)
     do
         # 1.search xml and delete chinese characters
         # 2.search file with Action=${action} and formatsignid keywords
@@ -155,7 +155,7 @@ do
         let error=0
     fi
 done
-endtime=`date +'%Y-%m-%d %H:%M:%S'`
+endtime=$(date +'%Y-%m-%d %H:%M:%S')
 endsecond=$(date --date="$endtime" +%s)
 echo -e "\n${endtime}" >> check/log
 elapse=$(($endsecond-$startsecond))
@@ -166,6 +166,6 @@ if [[ ${elapse} < $((24*60*60)) ]]; then
     echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${hour}hour ${min}m ${sec}s, \
 please use 'grep error check/log' command to see error detail info.\033[0m" | tee -a check/log
 else
-    echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:$((endsecond-startsecond))s, \
+    echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${elapse}s, \
 please use 'grep error check/log' command to see error detail info.\033[0m" | tee -a check/log
 fi
