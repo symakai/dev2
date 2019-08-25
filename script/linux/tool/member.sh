@@ -158,11 +158,11 @@ done
 endtime=$(date +'%Y-%m-%d %H:%M:%S')
 endsecond=$(date --date="$endtime" +%s)
 echo -e "\n${endtime}" >> check/log
-elapse=$(($endsecond-$startsecond))
+elapse=$((${endsecond}-${startsecond}))
 if [[ ${elapse} < $((24*60*60)) ]]; then
-    hour=$(($elapse/3600))
-    min=$(($elapse%3600/60))
-    sec=$(($elapse-$hour*3600-$min*60))
+    hour=$((${elapse}/3600))
+    min=$((${elapse}%3600/60))
+    sec=$((${elapse}-${hour}*3600-${min}*60))
     echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${hour}hour ${min}m ${sec}s, \
 please use 'grep error check/log' command to see error detail info.\033[0m" | tee -a check/log
 else
