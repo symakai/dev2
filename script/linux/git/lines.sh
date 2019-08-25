@@ -2,9 +2,10 @@
 #***********************************************
 # Utility of code statistic with git cmmmand,
 # support linux or git bash,not support windows
-# author:zhanghao
-# groupId:dev2
-# version 1.0 20190804 init
+# @author:zhanghao
+# @groupId:dev2
+# @version 1.0
+# @date 20190804
 #**********************************************
 
 which git > /dev/null 2>&1

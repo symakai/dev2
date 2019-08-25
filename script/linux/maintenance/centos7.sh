@@ -3,9 +3,10 @@
 # Note:
 # 1.utility of devementment and maintenance
 # 2.compatible with CentOS7.x
-# author:zhanghao
-# groupId:dev2
-# version 1.0.0  20190731 init
+# @author:zhanghao
+# @groupId:dev2
+# @version 1.0
+# @date 20190731
 #########################################################
 #Source function library.
 . /etc/init.d/functions
