@@ -45,7 +45,9 @@ if [[ ! -d check ]]; then
 fi;
 
 LANG=C
+mode=debug
 rm -rf check/*
+rm -rf log
 
 # table,fold linke, multi action
 # checkList="webContent/clientReg/Mb00014_edit_company.jsp
@@ -56,16 +58,20 @@ rm -rf check/*
 # checkList="webContent/hedgeOptimize/Mb01792_result.jsp
 # webContent/optExecStyle/Mb01461_input.jsp"
 
+# checkList="webContent/fundalarm/Mb01211_search.jsp"
+
 checkList=$(find . -name "*.jsp" | xargs grep -li "encrypt")
 let total=0
 let error=0
 let success=0
 starttime=$(date +'%Y-%m-%d %H:%M:%S')
 startsecond=$(date --date="$starttime" +%s)
-echo "${starttime}" >> check/log
+echo "${starttime}" >> log
 for jsp in ${checkList}
 do
     let total+=1
+    echo -e "\n[info] \033[34mcheck ${jsp##*/} total=[${total}]\033[0m" | tee -a log
+
     # 1.delete chinese character
     # 2.search <form></form> and its children with single line(-z)
     # 3.delete blank line
@@ -89,6 +95,12 @@ do
         # 5.get field according to name=field pattern
         field=$(echo $line | grep -Pai "<(input|select|textarea).*?name(\s)*=(\s)*" | grep -Pv "button|encrypt|action" | \
             grep -Po 'name=".*?"' | sed -r 's/"//g' | awk -F'=' '{print $2}')
+        if [[ ${field} == "" ]]; then
+            oldline="${oldline} ${line}"
+            # with assertions
+            field=$(echo $oldline | grep -Paio '<(input|select|textarea).*?name(\s)*=(\s)*(?!button|encrypt|action).*' | \
+                grep -Po 'name=".*?"' | sed -r 's/"//g' | awk -F'=' '{print $2}')
+        fi
         if [[ ${field} != "" ]]; then
             # filed have two format.one is xxxx.field,the other is field
             echo $field | grep -P "\." > /dev/null
@@ -98,18 +110,25 @@ do
                 echo ${field} >> check/jsp_fields
             fi
         fi
+        oldline=${line}
     done
     #<input type="hidden" name="action" value="Mb01611_del" />
     # there could be multiple acton in one jsp file
     for action in $(cat check/action)
     do
+
         # 1.search xml and delete chinese characters
         # 2.search file with Action=${action} and formatsignid keywords
         # 3.get sign variable
         sign=$(find ./src/issConfig/action -name "*.xml" | xargs sed -r "s/[\x81-\xFE][\x40-\xFE]//g" | \
-            grep -Pzo "(?s)<Action(\s)*?id(\s)*?=(\s)*?\"${action}\">.*?formatsignid.*?</Action>" | grep -aw "formatsignid" | \
+            grep -Pzo "(?s)<Action(\s)*?id(\s)*?=(\s)*?\"${action}\">.*?</Action>" | grep -aw "formatsignid" | \
             awk -F'<|>' '{print $3'})
 
+        if [[ ${sign} == "" ]]; then
+            echo -e "\033[31m[warning]\033[0m jsp has reduntant encrypt setting, please confirm. \033[34mjsp:${jsp##*/} action:${action}\033[0m" | tee -a log
+            echo -e "[info] check ${jsp##*/} sign property \033[34mfinished\033[0m" | tee -a log
+            continue
+        fi
         # 1.search xml and delete chinese characters
         # 2.search file with <FormatDef id=xxx></FormatDef> keyword
         # 3.search <Property keyword
@@ -119,34 +138,34 @@ do
             grep -Pzo "(?s)<FormatDef(\s)*?id(\s)*?=(\s)*?\"${sign}\".*?</FormatDef>" | grep -awi "<Property" | \
             sed -r "s/\"//g" | awk -F'=' '{print $2}' | awk '{print $1'})
 
-        echo -e "\n[info] check \033[34mjsp:${jsp##*/} action:${action} sign:${sign} num:${total}\033[0m" | tee -a check/log
+        echo -e "[debug] jsp:${jsp##*/} action:${action} sign:${sign}" | tee -a log
         if [[ ${checkFields} == "" ]]; then
-            echo -e "[warning] can't find any property in xml file \033[34m(jsp:${jsp##*/} sign:${sign})\033[0m" | tee -a check/log
-            echo "[info] check ${jsp##*/} sign property finished" | tee -a check/log
+            echo -e "\033[31m[warning]\033[0m jsp has redundent encrypt setting, please confirm. \033[34m(jsp:${jsp##*/} action:${action} sign:${sign})\033[0m" | tee -a log
+            echo -e "[info] check ${jsp##*/} sign property \033[34mfinished\033[0m" | tee -a log
             continue 
         fi
 
         counts=$(echo "${checkFields}" | wc -l)
-        echo -e "[info] xml fields counts:\033[34m${counts}\033[0m" | tee -a check/log
+        echo -e "[info] xml fields counts:\033[34m${counts}\033[0m" | tee -a log
         for ((k=1;k<=counts;k+=1))
         do
             property=$(echo "${checkFields}" | sed -n "${k}p")
             if [[ ${property} == "" ]]; then
-                echo -e "[error] parse xml property \033[34mfailed\033[0m" | tee -a check/log
+                echo -e "\033[31m[error]\033[0m parse xml property \033[34mfailed\033[0m" | tee -a log
                 error=1
                 continue 
             fi
             grep -awq ${property} check/jsp_fields
             if [[ $? != 0 ]]; then
-                echo -e "[error] check sign property:${property} \033[34mfailed (jsp:${jsp##*/} action:${action} sign:${sign})\033[0m" | tee -a check/log
+                echo -e "\033[31m[error]\033[0m check sign property:${property} \033[34mfailed (jsp:${jsp##*/} action:${action} sign:${sign})\033[0m" | tee -a log
                 error=1
                 continue
             else
-                echo -e "[info] check sign property:${property} \033[34mpassed\033[0m" | tee -a check/log
+                echo -e "[info] check sign property:${property} \033[34mpassed\033[0m" | tee -a log
             fi
         done
         # mutlti action output in one jsp 
-        echo -e "[info] check ${jsp##*/} sign property \033[34mfinished\033[0m" | tee -a check/log
+        echo -e "[info] check jsp:${jsp##*/} action:${action} \033[34mfinished\033[0m" | tee -a log
     done
     # jsp check statistic
     if [[ ${error} == 0 ]]; then
@@ -154,18 +173,21 @@ do
     else
         let error=0
     fi
+    echo -e "[info] check ${jsp##*/} \033[34mfinished\033[0m" | tee -a log
 done
 endtime=$(date +'%Y-%m-%d %H:%M:%S')
 endsecond=$(date --date="$endtime" +%s)
-echo -e "\n${endtime}" >> check/log
 elapse=$((${endsecond}-${startsecond}))
 if [[ ${elapse} < $((24*60*60)) ]]; then
     hour=$((${elapse}/3600))
     min=$((${elapse}%3600/60))
     sec=$((${elapse}-${hour}*3600-${min}*60))
     echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${hour}hour ${min}m ${sec}s, \
-please use 'grep error check/log' command to see error detail info.\033[0m" | tee -a check/log
+please use 'grep -E \"error|warn\" log' command to see error detail info.\033[0m" | tee -a log
 else
     echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${elapse}s, \
-please use 'grep error check/log' command to see error detail info.\033[0m" | tee -a check/log
+please use 'grep -E \"error|warn\" log' command to see error detail info.\033[0m" | tee -a log
+fi
+if [[ ${mode} != "debug" ]]; then
+    rm -rf check
 fi
