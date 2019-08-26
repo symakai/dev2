@@ -240,7 +240,6 @@
 | Field |                     Description                      |
 | :---: | :--------------------------------------------------: |
 |  S0C  |        Current survivor space 0 capacity (kB)        |
-|  S0C  |        Current survivor space 0 capacity (kB)        |
 |  S1C  |        Current survivor space 1 capacity (kB)        |
 |  S0U  |          Survivor space 0 utilization (kB)           |
 |  S1U  |          Survivor space 1 utilization (kB)           |
@@ -249,7 +248,7 @@
 |  OC   |           Current old space capacity (kB)            |
 |  OU   |              Old space utilization (kB)              |
 |  MC   |               Metaspace capacity (kB)                |
-|  MU   |             Metaspace utilization (kB)              |
+|  MU   |             Metaspace utilization (kB)               |
 | CCSC  |         Compressed class space capacity (kB)         |
 | CCSU  |           Compressed class space used (kB)           |
 |  YGC  | Number of young generation garbage collection events |
