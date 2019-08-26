@@ -54,16 +54,13 @@ rm -rf log
 # WebContent/abandonExecute/Mb01491_input.jsp
 # WebContent/monthRpt/Mb01611_result.jsp"
 
-# backtracking
-# checkList="webContent/hedgeOptimize/Mb01792_result.jsp
-# webContent/optExecStyle/Mb01461_input.jsp"
-
 # checkList="webContent/fundalarm/Mb01211_search.jsp"
 
 checkList=$(find . -name "*.jsp" | xargs grep -li "encrypt")
 let total=0
 let error=0
 let success=0
+let warn=0
 starttime=$(date +'%Y-%m-%d %H:%M:%S')
 startsecond=$(date --date="$starttime" +%s)
 echo "${starttime}" >> log
@@ -125,8 +122,10 @@ do
             awk -F'<|>' '{print $3'})
 
         if [[ ${sign} == "" ]]; then
-            echo -e "\033[31m[warning]\033[0m jsp has reduntant encrypt setting, please confirm. \033[34mjsp:${jsp##*/} action:${action}\033[0m" | tee -a log
+            echo -e "\033[31m[warning]\033[0m jsp has redundant encrypt setting, please confirm. \033[34mjsp:${jsp##*/} action:${action}\033[0m" | tee -a log
             echo -e "[info] check ${jsp##*/} sign property \033[34mfinished\033[0m" | tee -a log
+            let warn+=1
+            error=1
             continue
         fi
         # 1.search xml and delete chinese characters
@@ -140,8 +139,10 @@ do
 
         echo -e "[debug] jsp:${jsp##*/} action:${action} sign:${sign}" | tee -a log
         if [[ ${checkFields} == "" ]]; then
-            echo -e "\033[31m[warning]\033[0m jsp has redundent encrypt setting, please confirm. \033[34m(jsp:${jsp##*/} action:${action} sign:${sign})\033[0m" | tee -a log
+            echo -e "\033[31m[warning]\033[0m jsp has redundant encrypt setting, please confirm. \033[34m(jsp:${jsp##*/} action:${action} sign:${sign})\033[0m" | tee -a log
             echo -e "[info] check ${jsp##*/} sign property \033[34mfinished\033[0m" | tee -a log
+            let warn+=1
+            error=1
             continue 
         fi
 
@@ -182,10 +183,10 @@ if [[ ${elapse} < $((24*60*60)) ]]; then
     hour=$((${elapse}/3600))
     min=$((${elapse}%3600/60))
     sec=$((${elapse}-${hour}*3600-${min}*60))
-    echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${hour}hour ${min}m ${sec}s, \
+    echo -e "\033[31mchecked ${total} files, ${success} success, ${warn} warning, elapse time:${hour}hour ${min}m ${sec}s, \
 please use 'grep -E \"error|warn\" log' command to see error detail info.\033[0m" | tee -a log
 else
-    echo -e "\033[31mcheck ${total} files, ${success} passed, elapse time:${elapse}s, \
+    echo -e "\033[31mcheck ${total} files, ${success} success, ${warn} warning, elapse time:${elapse}s, \
 please use 'grep -E \"error|warn\" log' command to see error detail info.\033[0m" | tee -a log
 fi
 if [[ ${mode} != "debug" ]]; then
