@@ -56,7 +56,7 @@ SSH_IP="192.168.128.128"
 # SSH_IP="172.52.145.172"
 #ftp user
 SSH_USER="share"
-#ftp pass 
+#ftp pass
 SSH_PASS="Dev2_ftp"
 #ssh path
 SSH_PATH="/home/share/ftp/zhanghao"
@@ -646,10 +646,10 @@ install_sshpass() {
     ftp_check
     ftp -inv <<EOF
 open ${SSH_IP}
-user ${SSH_USER} ${SSH_PASS} 
+user ${SSH_USER} ${SSH_PASS}
 bin
 cd zhanghao
-mget sshpass-1.05.tar.gz 
+mget sshpass-1.05.tar.gz
 quit
 EOF
     tar zxf sshpass-1.05.tar.gz && cd sshpass-1.05
@@ -710,7 +710,7 @@ install_vscodeserver() {
     case "$input1" in
       0)
         clear
-        return 
+        return
         ;;
       1|2|3|4|5)
         break
@@ -889,3 +889,4 @@ do
       ;;
   esac
 done
+
