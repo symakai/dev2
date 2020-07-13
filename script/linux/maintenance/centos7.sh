@@ -642,7 +642,6 @@ ftp_check() {
 install_sshpass() {
   which sshpass > /dev/null 2>&1
   if [[ $? > 0 ]]; then
-    echo -e "\033[36m install sshpass firstly\033[0m"
     ftp_check
     ftp -inv <<EOF
 open ${SSH_IP}
@@ -656,6 +655,8 @@ EOF
     ./configure && make && sudo make install
     sshpass -V > /dev/null 2>&1 && action "install sshpass successfully" /bin/true || action "install sshpass successfully" /bin/false
     cd .. && rm -rf sshpass-1.05
+  else
+    echo "sshpass has already been installed in your environment"
   fi
 }
 
@@ -820,7 +821,7 @@ do
   echo -e "\033[36m(1)  create new user and config whether add sudoer or not"
   echo -e "\033[36m(2)  config aliyun yum for internet environment, ***forbid run this choice under intranet***"
   echo -e "\033[36m(3)  config chinese character(LC_CTYPE=zh_CN.UTF-8)"
-  echo -e "\033[36m(4)  forbit SELINUX and stop firewall"
+  echo -e "\033[36m(4)  forbid SELINUX and stop firewall"
   echo -e "\033[36m(5)  config ssh port to 22"
   echo -e "\033[36m(6)  config default history(command history=2000)"
   echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
