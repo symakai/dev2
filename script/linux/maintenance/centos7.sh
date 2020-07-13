@@ -52,8 +52,8 @@ JAVA_VERSION=$(java -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}')
 #gcc_version
 GCC_VERSION=$(gcc --version | grep -w "gcc" | awk '{print $3}')
 #dev2 ftp server
-SSH_IP="192.168.128.128"
-# SSH_IP="172.52.145.172"
+# SSH_IP="192.168.128.128"
+SSH_IP="172.52.145.172"
 #ftp user
 SSH_USER="share"
 #ftp pass
