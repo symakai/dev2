@@ -68,8 +68,8 @@ export LANG=zh_CN.UTF-8
 #uid=`id | awk -F '(' '{print $1}' | awk -F '=' '{print $2}'`
 uid=`id | cut -d\( -f1 | cut -d= -f2`
 if [[ $uid != 0 ]]; then
-  action "Please run this script as root." /bin/false
-  # exit 1
+  echo -e "\033[32mPlease run this script as root\033[0m"
+  exit 1
 fi
 
 
@@ -123,7 +123,7 @@ add_user() {
       cp /etc/sudoers /etc/sudoers.$(date +%F)
       SUDO=`grep -w "$name" /etc/sudoers | wc -l`
       if [[ $SUDO == 0 ]]; then
-        echo "$name  ALL=(ALL)       NOPASSWD: ALL" >> /etc/sudoers
+        echo "$name  ALL=(ALL)   NOPASSWD: ALL,!/usr/bin/passwd,!/usr/bin/passwd root,!/usr/sbin/visudo,/usr/bin/passwd [a-zA-Z0-9]*" >> /etc/sudoers
         echo "run cmd:tail -1 /etc/sudoers"
         tail -1 /etc/sudoers
         # grep -w "$name" /etc/sudoers
