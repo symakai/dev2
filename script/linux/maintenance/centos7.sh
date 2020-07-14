@@ -13,6 +13,8 @@
 # 1.0     | 20190731 | init                             |
 # 1.1     | 20200710 | 1.add install_other_tools        |
 #         |          | 2.rename function name           |
+# 1.2     | 20200714 | 1.fix sudo permission issue      |
+#         |          | 2.add update function            |
 #-------------------------------------------------------|
 
 #Source function library.
@@ -21,7 +23,13 @@
 # functions don't include below path in which some components would install
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
-
+VERSION="1.2"
+if [[ $# == 1 ]]; then
+  if [[ $1 == "-v" || $1 == "-V" ]]; then
+    echo "version:${VERSION}"
+    exit 0
+  fi
+fi
 #date
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
 #ip
@@ -52,8 +60,8 @@ JAVA_VERSION=$(java -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}')
 #gcc_version
 GCC_VERSION=$(gcc --version | grep -w "gcc" | awk '{print $3}')
 #dev2 ftp server
-# SSH_IP="192.168.128.128"
-SSH_IP="172.52.145.172"
+SSH_IP="192.168.128.128"
+# SSH_IP="172.52.145.172"
 #ftp user
 SSH_USER="share"
 #ftp pass
@@ -123,9 +131,11 @@ add_user() {
       cp /etc/sudoers /etc/sudoers.$(date +%F)
       SUDO=`grep -w "$name" /etc/sudoers | wc -l`
       if [[ $SUDO == 0 ]]; then
-        echo "$name  ALL=(ALL)   NOPASSWD: ALL,!/usr/bin/passwd,!/usr/bin/passwd root,!/usr/sbin/visudo,/usr/bin/passwd [a-zA-Z0-9]*" >> /etc/sudoers
+        chattr -i /etc/sudoers
+        echo "$name  ALL=(ALL)   NOPASSWD: ALL,/usr/bin/passwd [a-zA-Z0-9_-]*,!/usr/bin/passwd,!/usr/bin/passwd root,!/usr/sbin/visudo" >> /etc/sudoers
         echo "run cmd:tail -1 /etc/sudoers"
         tail -1 /etc/sudoers
+        chattr +i /etc/sudoers
         # grep -w "$name" /etc/sudoers
         sleep 1
       fi
@@ -790,104 +800,129 @@ install_other_tools() {
     esac
   done
 }
+update() {
+  install_sshpass
+  which sshpass > /dev/null 2>&1
+  if [[ $? == 0 ]]; then
+    NEW_VERSION=$(scp_get cmd "/home/share/ftp/zhanghao/centos7.sh -v")
+    NEW_VERSION=$(echo ${NEW_VERSION} | awk -F ':' '{print $2}')
+    MAJOR=$(echo ${VERSION} | awk -F '.' '{print $1}')
+    MINOR=$(echo ${VERSION} | awk -F '.' '{print $2}')
+    NEW_MAJOR=$(echo ${NEW_VERSION} | awk -F '.' '{print $1}')
+    NEW_MINOR=$(echo ${NEW_VERSION} | awk -F '.' '{print $2}')
+    if [[ ${NEW_MAJOR} -gt ${MAJOR} || ${NEW_MINOR} -gt ${MINOR} ]]; then
+      echo -e "\033[36mthere is a new version, upgrading...\033[0m"
+      read -p "upgrade or not?[y/n]"
+      if [[ "${REPLY}" == "" || "${REPLY}" == "y" ]]; then
+        scp_get ftp "centos7.sh"
+        echo -e "\033[36mupgrade finished, shell will exit in 3 seconds\033[0m"
+        sleep 3
+        exit 0
+      fi
+    fi
+  fi
+}
 
-clear
-echo ""
-echo -e "\033[36m|--------------------System Infomation----------------------"
-echo -e "\033[36m| DATE           :$DATE"
-echo -e "\033[36m| HOSTNAME       :$HOSTNAME"
-echo -e "\033[36m| USER           :$USER"
-echo -e "\033[36m| IP             :$IPADDR"
-echo -e "\033[36m| DISK_USED      :$DISK_SDA"
-echo -e "\033[36m| CPU_PROCESSORS :$CPU_PROCESSORS"
-echo -e "\033[36m| CPU_CORES      :$CPU_CORES"
-echo -e "\033[36m| CPU_MODEL      :$CPU_MODEL"
-echo -e "\033[36m| TOTAL MEMORY   :$MEMORY"
-echo -e "\033[36m| CNETOS         :$CENTOS_VERSION"
-echo -e "\033[36m| KERNEL         :$KERNEL_VERSION"
-echo -e "\033[36m| JAVA           :$JAVA_VERSION"
-echo -e "\033[36m| GCC            :$GCC_VERSION"
-echo -e "\033[36m|-----------------------------------------------------------\033[0m"
-
-while true
-do
+main() {
+  update
+  clear
   echo ""
-  echo -e "\033[36m*==========================================================*"
-  echo -e "\033[36m*                    Dev2 Linux Utility                    *"
-  echo -e "\033[36m*                                                          *"
-  echo -e "\033[36m* Color Support:                                           *"
-  echo -e "\033[36m* secureCRT->Terminal->Emulation->(Xterm+ANSI Color)       *"
-  echo -e "\033[36m*==========================================================*"
-  echo -e "\033[36m(1)  create new user and config whether add sudoer or not"
-  echo -e "\033[36m(2)  config aliyun yum for internet environment, ***forbid run this choice under intranet***"
-  echo -e "\033[36m(3)  config chinese character(LC_CTYPE=zh_CN.UTF-8)"
-  echo -e "\033[36m(4)  forbid SELINUX and stop firewall"
-  echo -e "\033[36m(5)  config ssh port to 22"
-  echo -e "\033[36m(6)  config default history(command history=2000)"
-  echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
-  echo -e "\033[36m(8)  config ulimit(nofile&&nproc=65535)"
-  echo -e "\033[36m(9)  config linux kernal(you should know what do you config)"
-  echo -e "\033[36m(10) config sync time under internet environment"
-  echo -e "\033[36m(11) config sync time under intranet clusters"
-  echo -e "\033[36m(12) config authorization under clusters for bothway"
-  echo -e "\033[36m(13) config backspace as delete"
-  echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server)"
-  echo -e "\033[36m(0)  exit\033[0m"
-  read -p "Please enter your choice[0-14]: " input1
-  case "$input1" in
-    0)
-      clear
-      break
-      ;;
-    1)
-      add_user
-      ;;
-    2)
-      config_yum
-      ;;
-    3)
-      config_charset
-      ;;
-    4)
-      config_firewall
-      ;;
-    5)
-      config_default_ssh_port
-      ;;
-    6)
-      config_history
-      ;;
-    7)
-      install_sys_tools
-      ;;
-    8)
-      config_limits
-      ;;
-    9)
-      config_sysctl
-      ;;
-    10)
-      config_outer_sync_time
-      ;;
-    11)
-      config_inner_sync_time
-      ;;
-    12)
-      config_authorization
-      ;;
-    13)
-      config_backspace
-      ;;
-    14)
-      install_other_tools
-      ;;
-    *)
-      echo "----------------------------------"
-      echo "|   Please enter right choice!   |"
-      echo "----------------------------------"
-      sleep 1
-      clear
-      ;;
-  esac
-done
+  echo -e "\033[36m|--------------------System Infomation----------------------"
+  echo -e "\033[36m| DATE           :$DATE"
+  echo -e "\033[36m| HOSTNAME       :$HOSTNAME"
+  echo -e "\033[36m| USER           :$USER"
+  echo -e "\033[36m| IP             :$IPADDR"
+  echo -e "\033[36m| DISK_USED      :$DISK_SDA"
+  echo -e "\033[36m| CPU_PROCESSORS :$CPU_PROCESSORS"
+  echo -e "\033[36m| CPU_CORES      :$CPU_CORES"
+  echo -e "\033[36m| CPU_MODEL      :$CPU_MODEL"
+  echo -e "\033[36m| TOTAL MEMORY   :$MEMORY"
+  echo -e "\033[36m| CNETOS         :$CENTOS_VERSION"
+  echo -e "\033[36m| KERNEL         :$KERNEL_VERSION"
+  echo -e "\033[36m| JAVA           :$JAVA_VERSION"
+  echo -e "\033[36m| GCC            :$GCC_VERSION"
+  echo -e "\033[36m|-----------------------------------------------------------\033[0m"
 
+  while true
+  do
+    echo ""
+    echo -e "\033[36m*==========================================================*"
+    echo -e "\033[36m*                    Dev2 Linux Utility                    *"
+    echo -e "\033[36m*                                                          *"
+    echo -e "\033[36m* Color Support:                                           *"
+    echo -e "\033[36m* secureCRT->Terminal->Emulation->(Xterm+ANSI Color)       *"
+    echo -e "\033[36m*==========================================================*"
+    echo -e "\033[36m(1)  create new user and config whether add sudoer or not"
+    echo -e "\033[36m(2)  config aliyun yum for internet environment, ***forbid run this choice under intranet***"
+    echo -e "\033[36m(3)  config chinese character(LC_CTYPE=zh_CN.UTF-8)"
+    echo -e "\033[36m(4)  forbid SELINUX and stop firewall"
+    echo -e "\033[36m(5)  config ssh port to 22"
+    echo -e "\033[36m(6)  config default history(command history=2000)"
+    echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
+    echo -e "\033[36m(8)  config ulimit(nofile&&nproc=65535)"
+    echo -e "\033[36m(9)  config linux kernal(you should know what do you config)"
+    echo -e "\033[36m(10) config sync time under internet environment"
+    echo -e "\033[36m(11) config sync time under intranet clusters"
+    echo -e "\033[36m(12) config authorization under clusters for bothway"
+    echo -e "\033[36m(13) config backspace as delete"
+    echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server)"
+    echo -e "\033[36m(0)  exit\033[0m"
+    read -p "Please enter your choice[0-14]: " input1
+    case "$input1" in
+      0)
+        clear
+        break
+        ;;
+      1)
+        add_user
+        ;;
+      2)
+        config_yum
+        ;;
+      3)
+        config_charset
+        ;;
+      4)
+        config_firewall
+        ;;
+      5)
+        config_default_ssh_port
+        ;;
+      6)
+        config_history
+        ;;
+      7)
+        install_sys_tools
+        ;;
+      8)
+        config_limits
+        ;;
+      9)
+        config_sysctl
+        ;;
+      10)
+        config_outer_sync_time
+        ;;
+      11)
+        config_inner_sync_time
+        ;;
+      12)
+        config_authorization
+        ;;
+      13)
+        config_backspace
+        ;;
+      14)
+        install_other_tools
+        ;;
+      *)
+        echo "----------------------------------"
+        echo "|   Please enter right choice!   |"
+        echo "----------------------------------"
+        sleep 1
+        clear
+        ;;
+    esac
+  done
+}
+main
