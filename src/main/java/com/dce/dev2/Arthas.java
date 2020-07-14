@@ -12,7 +12,7 @@ public class Arthas {
 
     private static ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-    public static void start() {
+    public static void main(String[] args) {
         // mock CPU high usage
         // mock block
         thread();
@@ -91,30 +91,30 @@ public class Arthas {
         Object resourceB = new Object();
         Thread threadA = new Thread(() -> {
             synchronized (resourceA) {
-                System.out.println(Thread.currentThread() + " get ResourceA")
+                System.out.println(Thread.currentThread() + " get A");
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                log.info(Thread.currentThread() + "waiting get resourceB");
+                System.out.println(Thread.currentThread() + " waiting B");
                 synchronized (resourceB) {
-                    log.info(Thread.currentThread() + " get resourceB");
+                    System.out.println(Thread.currentThread() + "get B");
                 }
             }
         });
 
         Thread threadB = new Thread(() -> {
             synchronized (resourceB) {
-                log.info(Thread.currentThread() + " get ResourceB");
+                System.out.println(Thread.currentThread() + " get B");
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                log.info(Thread.currentThread() + "waiting get resourceA");
+                System.out.println(Thread.currentThread() + " waiting A");
                 synchronized (resourceA) {
-                    log.info(Thread.currentThread() + " get resourceA");
+                    System.out.println(Thread.currentThread() + " get A");
                 }
             }
         });
