@@ -60,8 +60,8 @@ JAVA_VERSION=$(java -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}')
 #gcc_version
 GCC_VERSION=$(gcc --version | grep -w "gcc" | awk '{print $3}')
 #dev2 ftp server
-SSH_IP="192.168.128.128"
-# SSH_IP="172.52.145.172"
+# SSH_IP="192.168.128.128"
+SSH_IP="172.52.145.172"
 #ftp user
 SSH_USER="share"
 #ftp pass
@@ -666,7 +666,9 @@ EOF
     sshpass -V > /dev/null 2>&1 && action "install sshpass successfully" /bin/true || action "install sshpass successfully" /bin/false
     cd .. && rm -rf sshpass-1.05
   else
-    echo "sshpass has already been installed in your environment"
+    if [[ $# == 0 ]]; then
+      echo "sshpass has already been installed in your environment"
+    fi
   fi
 }
 
@@ -801,7 +803,7 @@ install_other_tools() {
   done
 }
 update() {
-  install_sshpass
+  install_sshpass -q
   which sshpass > /dev/null 2>&1
   if [[ $? == 0 ]]; then
     NEW_VERSION=$(scp_get cmd "/home/share/ftp/zhanghao/centos7.sh -v")
