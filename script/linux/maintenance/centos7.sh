@@ -15,6 +15,7 @@
 #         |          | 2.rename function name           |
 # 1.2     | 20200714 | 1.fix sudo permission issue      |
 #         |          | 2.add update function            |
+# 1.3     | 20200716 | 1.add group when adduser         |
 #-------------------------------------------------------|
 
 #Source function library.
@@ -23,7 +24,7 @@
 # functions don't include below path in which some components would install
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
-VERSION="1.2"
+VERSION="1.3"
 if [[ $# == 1 ]]; then
   if [[ $1 == "-v" || $1 == "-V" ]]; then
     echo "version:${VERSION}"
@@ -96,7 +97,16 @@ add_user() {
       echo "user name is used, please choose another"
       continue
     fi
-    useradd $name
+    grep dev2 /etc/group > /dev/null 2>&1
+    if [[ $? > 0 ]]; then
+      groupadd dev2
+    fi
+    if [[ "${name}" == "oracle" ]]; then
+      groupadd dba > /dev/null 2>&1
+      useradd oracle -g dba -G dev2
+    else
+      useradd $name -g dev2
+    fi
     break
   done
   #create password
@@ -826,7 +836,9 @@ update() {
 }
 
 main() {
-  update
+  if [[ $1 != "-q" ]]; then
+    update
+  fi
   clear
   echo ""
   echo -e "\033[36m|--------------------System Infomation----------------------"
@@ -927,4 +939,4 @@ main() {
     esac
   done
 }
-main
+main "$@"
