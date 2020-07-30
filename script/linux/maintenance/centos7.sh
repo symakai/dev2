@@ -2,21 +2,23 @@
 #########################################################
 # Note:
 # 1.utility of devementment and maintenance
-# 2.compatible with CentOS7.x
+# 2.compatible with [CentOS7.x,)
 # @author:zhanghao
 # @groupId:dev2
 #########################################################
 
-# ------------------------------------------------------
-# version |  date    | comments                         |
-# ------------------------------------------------------
-# 1.0     | 20190731 | init                             |
-# 1.1     | 20200710 | 1.add install_other_tools        |
-#         |          | 2.rename function name           |
-# 1.2     | 20200714 | 1.fix sudo permission issue      |
-#         |          | 2.add update function            |
-# 1.3     | 20200716 | 1.add group when adduser         |
-#-------------------------------------------------------|
+# ---------------------------------------------------------------------------------------------
+# version |  date    | comments                                                                |
+# ---------------------------------------------------------------------------------------------
+# 1.0     | 20190731 | init                                                                    |
+# 1.1     | 20200710 | 1.add install_other_tools                                               |
+#         |          | 2.rename function name                                                  |
+# 1.2     | 20200714 | 1.fix sudo permission issue                                             |
+#         |          | 2.add update function                                                   |
+# 1.3     | 20200716 | 1.add group when adduser                                                |
+# 1.4     | 20200720 | 1.put centos7.sh to /root path when update                              |
+# 1.5     | 20200730 | 1.ulimit support account config                                         |
+#----------------------------------------------------------------------------------------------|
 
 #Source function library.
 . /etc/init.d/functions
@@ -24,7 +26,7 @@
 # functions don't include below path in which some components would install
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
-VERSION="1.3"
+VERSION="1.5"
 if [[ $# == 1 ]]; then
   if [[ $1 == "-v" || $1 == "-V" ]]; then
     echo "version:${VERSION}"
@@ -103,7 +105,11 @@ add_user() {
     fi
     if [[ "${name}" == "oracle" ]]; then
       groupadd dba > /dev/null 2>&1
-      useradd oracle -g dba -G dev2
+      groupadd oinstall > /dev/null 2>&1
+      useradd oracle -g oinstall -G dba,dev2
+    elif [[ "${name}" == "timesten" ]]; then
+      groupadd TimesTen > /dev/null 2>&1
+      useradd timesten -g TimesTen
     else
       useradd $name -g dev2
     fi
@@ -292,38 +298,24 @@ install_sys_tools() {
   sleep 2
 }
 
-#Adjust the file descriptor(limits.conf)
+#Adjust the file descriptor(values in 20-nproc.conf will override /etc/securty/limits.conf)
 config_limits() {
   echo "===============config file descriptor===================="
-  LIMIT=`grep nofile /etc/security/limits.conf | grep -v "^#" | wc -l`
-  if [[ $LIMIT == 0 ]]; then
+  LIMIT=`grep nofile /etc/security/limits.d/20-nproc.conf | grep -v "^#" | wc -l`
+  if [[ ${LIMIT} == 0 ]]; then
     echo ""
     echo "***limit settting****"
-    echo "* soft nofile 65535 *"
-    echo "* hard nofile 65535 *"
+    echo "*    - nofile 65535 *"
+    echo "root - nofile unlimited*"
     echo "*********************"
     echo ""
-    cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
-    cat >> /etc/security/limits.conf<<EOF
-* soft nofile 65535
-* hard nofile 65535
+    # cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
+    cat >> /etc/security/limits.d/20-nproc.conf<<EOF
+*    - nofile 65535
+root - nofile unlimited
 EOF
   fi
 
-  LIMIT=`grep nproc /etc/security/limits.conf | grep -v "^#" | wc -l`
-  if [[ $LIMIT == 0 ]]; then
-    echo ""
-    echo "***limit settting****"
-    echo "* soft nproc  65535 *"
-    echo "* hard nproc  65535 *"
-    echo "*********************"
-    echo ""
-    cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
-    cat >> /etc/security/limits.conf<<EOF
-* soft nproc  65535
-* hard nproc  65535
-EOF
-  fi
   echo 'run cmd:tail -4 /etc/security/limits.conf'
   tail -4 /etc/security/limits.conf
   ulimit -HSn 65535
@@ -685,7 +677,7 @@ EOF
 scp_get() {
   if [[ $1 == "ftp" ]]; then
     local FILE=$2
-    sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_IP}:${SSH_PATH}/${FILE} .
+    sshpass -p ${SSH_PASS} scp -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_IP}:${SSH_PATH}/${FILE} $3
   elif [[ $1 == "cmd" ]]; then
     local CMD=$2
     sshpass -p ${SSH_PASS} ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_IP} "${CMD}"
@@ -696,7 +688,7 @@ scp_get() {
 
 install_arthas() {
   install_sshpass
-  scp_get ftp 'arthas*.zip'
+  scp_get ftp 'arthas*.zip' '.'
   if [[ $? == 0 ]]; then
     unzip -d tmp arthas*.zip
     rm -rf arthas*.zip > /dev/null 2>&1
@@ -706,7 +698,7 @@ install_arthas() {
 }
 
 install_nvim() {
-  scp_get "nvim-0.4.3.appimage"
+  scp_get "nvim-0.4.3.appimage" '.'
   chmod u+x nvim-0.4.3.appimage && ./nvim-0.4.3.appimage --appimage-extract && sudo cp -r squashfs-root/usr/* /usr
   [ $? == 0 ] && action "install nvim successfully" /bin/true || action "install nvim failed" /bin/false
   rm -rf squashfs-root
@@ -748,7 +740,7 @@ install_vscodeserver() {
     esac
   done
   ((IDX=$input1-1))
-  scp_get ftp "${VERSION_ARR[${IDX}]}"
+  scp_get ftp "${VERSION_ARR[${IDX}]}" '.'
   ls vscode*.gz > /dev/null 2>&1 || action "install vscode-server failed" /bin/false || return
 
   VERSION="${VERSION_ARR[${IDX}]}"
@@ -826,7 +818,7 @@ update() {
       echo -e "\033[36mthere is a new version, upgrading...\033[0m"
       read -p "upgrade or not?[y/n]"
       if [[ "${REPLY}" == "" || "${REPLY}" == "y" ]]; then
-        scp_get ftp "centos7.sh"
+        scp_get ftp "centos7.sh" "/root"
         echo -e "\033[36mupgrade finished, shell will exit in 3 seconds\033[0m"
         sleep 3
         exit 0
