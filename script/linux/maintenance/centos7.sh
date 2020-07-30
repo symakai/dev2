@@ -298,33 +298,48 @@ install_sys_tools() {
   sleep 2
 }
 
-#Adjust the file descriptor(values in 20-nproc.conf will override /etc/securty/limits.conf)
+#Adjust the file descriptor and max process
+#values in 20-nproc.conf will override /etc/securty/limits.conf
 config_limits() {
   echo "===============config file descriptor===================="
-  LIMIT=`grep nofile /etc/security/limits.d/20-nproc.conf | grep -v "^#" | wc -l`
-  if [[ ${LIMIT} == 0 ]]; then
-    echo ""
-    echo "***limit settting****"
-    echo "*    - nofile 65535 *"
-    echo "root - nofile unlimited*"
-    echo "*********************"
-    echo ""
-    # cp /etc/security/limits.conf /etc/security/limits.conf.$(date +%F)
+  echo "we will use below setting, * means all the users except root, you should relogin after setting"
+  echo ""
+  echo "************************"
+  echo "*    - nofile 65535"
+  echo "root - nofile unlimited"
+  echo "*    - nproc  65535"
+  echo "root - nproc  unlimited"
+  echo "************************"
+  echo ""
+  local limit=$(grep -v -e "^#" -e "^$" /etc/security/limits.d/20-nproc.conf)
+  if [[ -z "${limit}" ]]; then
     cat >> /etc/security/limits.d/20-nproc.conf<<EOF
 *    - nofile 65535
-root - nofile unlimited
+root - nofile 65535 
+*    - nproc  65535
+root - nproc  65535 
 EOF
+  else
+    echo "current limit is:"
+    echo "${limit}"
+    echo ""
+    read -p "are you sure to replace current setting with 65535[y|n]:"
+    if [[ "${REPLY}" == "y" ]]; then
+      sed -r -i -e "/.*nproc.*/d" -e "/.*nofile.*/d" /etc/security/limits.d/20-nproc.conf
+      cat >> /etc/security/limits.d/20-nproc.conf<<EOF
+*    - nofile 65535
+root - nofile 65535 
+*    - nproc  65535
+root - nproc  65535 
+EOF
+      echo 'run cmd:tail -4 /etc/security/limits.d/20-nproc.conf'
+      tail -4 /etc/security/limits.d/20-nproc.conf
+      action "config nofile and nproc successfully" /bin/true
+      echo "========================================================="
+      echo ""
+      sleep 2
+    fi
   fi
-
-  echo 'run cmd:tail -4 /etc/security/limits.conf'
-  tail -4 /etc/security/limits.conf
-  ulimit -HSn 65535
-  echo 'run cmd:ulimit -n'
-  ulimit -n
-  action "config limit to 65535 successfully" /bin/true
-  echo "========================================================="
-  echo ""
-  sleep 2
 }
 
 
@@ -865,7 +880,7 @@ main() {
     echo -e "\033[36m(5)  config ssh port to 22"
     echo -e "\033[36m(6)  config default history(command history=2000)"
     echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
-    echo -e "\033[36m(8)  config ulimit(nofile&&nproc=65535)"
+    echo -e "\033[36m(8)  config nofile and nproc ulimit(65535)"
     echo -e "\033[36m(9)  config linux kernal(you should know what do you config)"
     echo -e "\033[36m(10) config sync time under internet environment"
     echo -e "\033[36m(11) config sync time under intranet clusters"
