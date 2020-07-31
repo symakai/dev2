@@ -17,7 +17,8 @@
 #         |          | 2.add update function                                                   |
 # 1.3     | 20200716 | 1.add group when adduser                                                |
 # 1.4     | 20200720 | 1.put centos7.sh to /root path when update                              |
-# 1.5     | 20200730 | 1.ulimit support account config                                         |
+# 1.5     | 20200730 | 1.ulimit support account config(nofile=512k,nproc=128k)                 |
+#         |          | 2.sysctl.conf refer to requirements of GP
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -302,35 +303,29 @@ install_sys_tools() {
 #values in 20-nproc.conf will override /etc/securty/limits.conf
 config_limits() {
   echo "===============config file descriptor===================="
-  echo "we will use below setting, * means all the users except root, you should relogin after setting"
+  echo -e "\033[36mwe will use below setting, * means all the users, you should relogin after setting\033[0m"
   echo ""
   echo "************************"
-  echo "*    - nofile 65535"
-  echo "root - nofile unlimited"
-  echo "*    - nproc  65535"
-  echo "root - nproc  unlimited"
+  echo "*    - nofile 512k"
+  echo "*    - nproc  128k"
   echo "************************"
   echo ""
   local limit=$(grep -v -e "^#" -e "^$" /etc/security/limits.d/20-nproc.conf)
   if [[ -z "${limit}" ]]; then
     cat >> /etc/security/limits.d/20-nproc.conf<<EOF
-*    - nofile 65535
-root - nofile 65535 
-*    - nproc  65535
-root - nproc  65535 
+*    - nofile 524288
+*    - nproc  131072
 EOF
   else
     echo "current limit is:"
     echo "${limit}"
     echo ""
-    read -p "are you sure to replace current setting with 65535[y|n]:"
-    if [[ "${REPLY}" == "y" ]]; then
+    read -p "are you sure to replace current setting with metioned earlier[y/n]:"
+    if [[ "${REPLY}" == "y" || "${REPLY}" == "Y" ]]; then
       sed -r -i -e "/.*nproc.*/d" -e "/.*nofile.*/d" /etc/security/limits.d/20-nproc.conf
       cat >> /etc/security/limits.d/20-nproc.conf<<EOF
-*    - nofile 65535
-root - nofile 65535 
-*    - nproc  65535
-root - nproc  65535 
+*    - nofile 524288
+*    - nproc  131072
 EOF
       echo 'run cmd:tail -4 /etc/security/limits.d/20-nproc.conf'
       tail -4 /etc/security/limits.d/20-nproc.conf
@@ -346,54 +341,109 @@ EOF
 #Optimizing the system kernel
 config_sysctl() {
   echo "====================config sysctl========================"
-  SYSCTL=`grep "net.ipv4.tcp" /etc/sysctl.conf | wc -l`
-  if [[ $SYSCTL < 1 ]]; then
+  shmall=$(expr $(getconf _PHYS_PAGES) / 2)
+  shmmax=$(expr $(getconf _PHYS_PAGES) / 2 \* $(getconf PAGE_SIZE))
+  echo -e "\033[36mwe will use below settings:\033[0m"
+  echo "***************************************"
+  echo "kernel.shmall = ${shmall}"
+  echo "kernel.shmmax = ${shmmax}"
+  echo "kernel.shmmni = 4096"
+  echo "vm.overcommit_memory = 2"
+  echo "vm.overcommit_ratio = 95"
+  echo "net.ipv4.ip_local_port_range = 10000 65535"
+  echo "kernel.sem = 500 2048000 200 4096"
+  echo "kernel.sysrq = 1"
+  echo "kernel.core_uses_pid = 1"
+  echo "kernel.msgmnb = 65536"
+  echo "kernel.msgmax = 65536"
+  echo "kernel.msgmni = 2048"
+  echo "net.ipv4.tcp_syncookies = 1"
+  echo "net.ipv4.conf.default.accept_source_route = 0"
+  echo "net.ipv4.tcp_max_syn_backlog = 4096"
+  echo "net.ipv4.conf.all.arp_filter = 1"
+  echo "net.core.netdev_max_backlog = 10000"
+  echo "net.core.rmem_max = 2097152"
+  echo "net.core.wmem_max = 2097152"
+  echo "vm.swappiness = 10"
+  echo "vm.zone_reclaim_mode = 0"
+  echo "vm.dirty_expire_centisecs = 500"
+  echo "vm.dirty_writeback_centisecs = 100"
+  echo "vm.dirty_background_ratio = 0"
+  echo "vm.dirty_ratio = 0"
+  echo "vm.dirty_background_bytes = 1610612736"
+  echo "vm.dirty_bytes = 4294967296"
+  echo "***************************************"
+  sleep 2
+  grep -q "${shmmax}" /etc/sysctl.conf
+  if [[ $? != 0 ]]; then
     cp /etc/sysctl.conf /etc/sysctl.conf.$(date +%F)
-    echo "***************************************"
-    echo "net.ipv4.tcp_fin_timeout = 2
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_tw_recycle = 1
+    cat >> /etc/sysctl.conf<<EOF
+kernel.shmall = ${shmall}
+kernel.shmmax = ${shmmax}
+kernel.shmmni = 4096
+vm.overcommit_memory = 2
+vm.overcommit_ratio = 95
+net.ipv4.ip_local_port_range = 10000 65535
+kernel.sem = 500 2048000 200 4096
+kernel.sysrq = 1
+kernel.core_uses_pid = 1
+kernel.msgmnb = 65536
+kernel.msgmax = 65536
+kernel.msgmni = 2048
 net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_max_syn_backlog = 16384
-net.ipv4.tcp_max_tw_buckets = 36000
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_max_orphans = 16384
-net.ipv4.tcp_rmem=4096 87380 4194304
-net.ipv4.tcp_wmem=4096 16384 4194304
-net.ipv4.tcp_keepalive_time = 600
-net.ipv4.tcp_keepalive_probes = 5
-net.ipv4.tcp_keepalive_intvl = 15
-net.ipv4.route.gc_timeout = 100
-net.ipv4.ip_local_port_range = 1024 65000
-net.ipv4.icmp_echo_ignore_broadcasts=1
-net.core.somaxconn = 16384
-net.core.netdev_max_backlog = 16384"
-    echo "***************************************"
-    read -p "is this ok?[y/n]:" option
-    if [[ $option == "y" || $option == "Y" ]]; then
-      cat >> /etc/sysctl.conf<<EOF
-net.ipv4.tcp_fin_timeout = 2
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_max_syn_backlog = 16384
-net.ipv4.tcp_max_tw_buckets = 36000
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_max_orphans = 16384
-net.ipv4.tcp_rmem=4096 87380 4194304
-net.ipv4.tcp_wmem=4096 16384 4194304
-net.ipv4.tcp_keepalive_time = 600
-net.ipv4.tcp_keepalive_probes = 5
-net.ipv4.tcp_keepalive_intvl = 15
-net.ipv4.route.gc_timeout = 100
-net.ipv4.ip_local_port_range = 1024 65000
-net.ipv4.icmp_echo_ignore_broadcasts=1
-net.core.somaxconn = 16384
-net.core.netdev_max_backlog = 16384
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv4.tcp_max_syn_backlog = 4096
+net.ipv4.conf.all.arp_filter = 1
+net.core.netdev_max_backlog = 10000
+net.core.rmem_max = 2097152
+net.core.wmem_max = 2097152
+vm.swappiness = 10
+vm.zone_reclaim_mode = 0
+vm.dirty_expire_centisecs = 500
+vm.dirty_writeback_centisecs = 100
+vm.dirty_background_ratio = 0
+vm.dirty_ratio = 0
+vm.dirty_background_bytes = 1610612736
+vm.dirty_bytes = 4294967296
 EOF
-      sysctl -p && action "kernel setting successfully" /bin/true || action "kernel setting failed" /bin/false
+    sysctl -p && action "kernel setting successfully" /bin/true || action "kernel setting failed" /bin/false
+  else
+    local settings=$(grep -E -v -e "^\s*$" -e "^#" /etc/sysctl.conf)
+    echo "current settings are:"
+    echo "${settings}"
+    read -p "are you sure to replace current settings with metioned earlier?[y/n]:"
+    if [[ "${REPLY}" == "y" || "${REPLY}" == "Y" ]]; then
+      sed -i -r -n '/^#/!d' /etc/sysctl.conf
+      cat >> /etc/sysctl.conf<<EOF
+kernel.shmall = ${shmall}
+kernel.shmmax = ${shmmax}
+kernel.shmmni = 4096
+vm.overcommit_memory = 2
+vm.overcommit_ratio = 95
+net.ipv4.ip_local_port_range = 10000 65535
+kernel.sem = 500 2048000 200 4096
+kernel.sysrq = 1
+kernel.core_uses_pid = 1
+kernel.msgmnb = 65536
+kernel.msgmax = 65536
+kernel.msgmni = 2048
+net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv4.tcp_max_syn_backlog = 4096
+net.ipv4.conf.all.arp_filter = 1
+net.core.netdev_max_backlog = 10000
+net.core.rmem_max = 2097152
+net.core.wmem_max = 2097152
+vm.swappiness = 10
+vm.zone_reclaim_mode = 0
+vm.dirty_expire_centisecs = 500
+vm.dirty_writeback_centisecs = 100
+vm.dirty_background_ratio = 0
+vm.dirty_ratio = 0
+vm.dirty_background_bytes = 1610612736
+vm.dirty_bytes = 4294967296
+EOF
+    sysctl -p && action "kernel setting successfully" /bin/true || action "kernel setting failed" /bin/false
     fi
   fi
   echo "========================================================="
@@ -880,8 +930,8 @@ main() {
     echo -e "\033[36m(5)  config ssh port to 22"
     echo -e "\033[36m(6)  config default history(command history=2000)"
     echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
-    echo -e "\033[36m(8)  config nofile and nproc ulimit(65535)"
-    echo -e "\033[36m(9)  config linux kernal(you should know what do you config)"
+    echo -e "\033[36m(8)  config nofile and nproc ulimit(nproc=128k;nofile=512k)"
+    echo -e "\033[36m(9)  config linux kernel(refer to requirements of GP)"
     echo -e "\033[36m(10) config sync time under internet environment"
     echo -e "\033[36m(11) config sync time under intranet clusters"
     echo -e "\033[36m(12) config authorization under clusters for bothway"
