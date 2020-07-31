@@ -18,7 +18,8 @@
 # 1.3     | 20200716 | 1.add group when adduser                                                |
 # 1.4     | 20200720 | 1.put centos7.sh to /root path when update                              |
 # 1.5     | 20200730 | 1.ulimit support account config(nofile=512k,nproc=128k)                 |
-#         |          | 2.sysctl.conf refer to requirements of GP
+#         |          | 2.sysctl.conf refer to requirements of GP                               |
+#         |          | 3.add help support                                                      |
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -28,10 +29,31 @@
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
 VERSION="1.5"
+usage() {
+  echo "NAME"
+  echo "        centos7.sh - dev2 matainance shell"
+  echo "SYNOPSIS"
+  echo "        centos7.sh [OPTIONS]"
+  echo "DESCRIPTION"
+  echo "        -v"
+  echo "            output version information and exit"
+  echo "        -q"
+  echo "            quiet mode, do not check the new version"
+  echo "        -h"
+  echo "            help display this help and exit"
+  exit 0
+}
 if [[ $# == 1 ]]; then
   if [[ $1 == "-v" || $1 == "-V" ]]; then
     echo "version:${VERSION}"
     exit 0
+  elif [[ $1 == "-h" ]]; then
+    usage
+  else
+    if [[ $1 != "-q" ]]; then
+      echo "unsupported option:$1"
+      usage
+    fi
   fi
 fi
 #date
@@ -78,7 +100,7 @@ export LANG=zh_CN.UTF-8
 
 #Require root to run this script.
 #uid=`id | awk -F '(' '{print $1}' | awk -F '=' '{print $2}'`
-uid=`id | cut -d\( -f1 | cut -d= -f2`
+uid=$(id | cut -d\( -f1 | cut -d= -f2)
 if [[ $uid != 0 ]]; then
   echo -e "\033[32mPlease run this script as root\033[0m"
   exit 1
@@ -92,7 +114,7 @@ add_user() {
   while true
   do
     read -p "user name:" name
-    NAME=`awk -F':' '{print $1}' /etc/passwd | grep -wx $name 2>/dev/null | wc -l`
+    NAME=$(awk -F':' '{print $1}' /etc/passwd | grep -wx "${name}" 2>/dev/null | wc -l)
     if [[ $NAME == "" ]]; then
       echo "user name is null, please input angain"
       continue
@@ -120,16 +142,16 @@ add_user() {
   while true
   do
     read -p "change password for $name:" pass1
-    if [[ $pass1 == "" ]]; then
+    if [[ "${pass1}" == "" ]]; then
       echo "password is null, please input again"
       continue
     fi
     read -p "input password angin:" pass2
-    if [[ $pass1 != $pass2 ]]; then
+    if [[ "${pass1}" != "${pass2}" ]]; then
       echo "two inputs are inconsistent, please input again"
       continue
     fi
-    echo "$pass2" | passwd --stdin $name
+    echo "$pass2" | passwd --stdin "$name"
     action "add user $name successfully"  /bin/true
     break
   done
@@ -146,7 +168,7 @@ add_user() {
       #add visudo
       echo -e "\n*****add sudoer******\n"
       cp /etc/sudoers /etc/sudoers.$(date +%F)
-      SUDO=`grep -w "$name" /etc/sudoers | wc -l`
+      SUDO=$(grep -w "$name" /etc/sudoers | wc -l)
       if [[ $SUDO == 0 ]]; then
         chattr -i /etc/sudoers
         echo "$name  ALL=(ALL)   NOPASSWD: ALL,/usr/bin/passwd [a-zA-Z0-9_-]*,!/usr/bin/passwd,!/usr/bin/passwd root,!/usr/sbin/visudo" >> /etc/sudoers
@@ -202,7 +224,7 @@ config_charset() {
   #config other users
   read -p "config other users with LC_CTYPE?[y/n]:" option
   if [[ $option == "y" || $option == "Y" ]]; then
-    for user in `ls /home`
+    for user in $(ls /home)
     do
       id $user > /dev/null 2>&1
       if [[ $? == 0 ]]; then
@@ -454,7 +476,7 @@ EOF
 #time sync
 config_outer_sync_time() {
   echo "================config internet time sync================"
-  NTPDATE=`grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l`
+  NTPDATE=$(grep ntpdate /var/spool/cron/root 2>/dev/null | wc -l)
   if [[ $NTPDATE == 0 ]]; then
     yum list installed | grep -w ntpdate > /dev/null 2>&1
     if [[ $? != 0 ]]; then
@@ -679,13 +701,13 @@ config_authorization() {
 config_backspace() {
   echo "================config backspace as erase================"
   echo "config for user:root"
-  erase=`grep -wx "stty erase ^H" /root/.bash_profile | wc -l`
+  erase=$(grep -wx "stty erase ^H" /root/.bash_profile | wc -l)
   if [[ $erase < 1 ]]; then
     cp /root/.bash_profile  /root/.bash_profile.$(date +%F)
     echo "stty erase ^H" >> /root/.bash_profile
     source /root/.bash_profile
   fi
-  for user in `ls /home`
+  for user in $(ls /home)
   do
     id $user > /dev/null 2>&1
     if [[ $? == 0 ]]; then
@@ -694,7 +716,7 @@ config_backspace() {
         continue
       fi
       echo "config for user:${user}"
-      erase=`grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l`
+      erase=$(grep -wx "stty erase ^H" /home/$user/.bash_profile | wc -l)
       if [[ $erase < 1 ]]; then
         cp /home/$user/.bash_profile /home/$user/.bash_profile.$(date +%F)
         echo "stty erase ^H" >> /home/$user/.bash_profile
@@ -844,8 +866,8 @@ install_other_tools() {
     echo -e "\033[36m(2) install arthas"
     echo -e "\033[36m(3) install vscode-server"
     echo -e "\033[36m(0) exit\033[0m"
-    read -p "Please enter your choice[0-3]: " input1
-    case "$input1" in
+    read -p "Please enter your choice[0-3]: "
+    case "${REPLAY}" in
       0)
         clear
         break
@@ -938,8 +960,8 @@ main() {
     echo -e "\033[36m(13) config backspace as delete"
     echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server)"
     echo -e "\033[36m(0)  exit\033[0m"
-    read -p "Please enter your choice[0-14]: " input1
-    case "$input1" in
+    read -p "Please enter your choice[0-14]: "
+    case "${REPLY}" in
       0)
         clear
         break
