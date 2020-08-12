@@ -11,15 +11,18 @@
 # version |  date    | comments                                                                |
 # ---------------------------------------------------------------------------------------------
 # 1.0     | 20190731 | init                                                                    |
-# 1.1     | 20200710 | 1.add install_other_tools                                               |
-#         |          | 2.rename function name                                                  |
-# 1.2     | 20200714 | 1.fix sudo permission issue                                             |
-#         |          | 2.add update function                                                   |
-# 1.3     | 20200716 | 1.add group when adduser                                                |
-# 1.4     | 20200720 | 1.put centos7.sh to /root path when update                              |
-# 1.5     | 20200730 | 1.ulimit support account config(nofile=512k,nproc=128k)                 |
-#         |          | 2.sysctl.conf refer to requirements of GP                               |
-#         |          | 3.add help support                                                      |
+# 1.1     | 20200710 | [feat]  add install_other_tools                                         |
+#         |          | [style] rename function name                                            |
+# 1.2     | 20200714 | [fix]   fix sudo permission issue                                       |
+#         |          | [feat]  add update function                                             |
+# 1.3     | 20200716 | [feat]  add group when adduser                                          |
+# 1.4     | 20200720 | [fix]   put centos7.sh to /root path when update                        |
+# 1.5     | 20200730 | [feat]  ulimit support account config(nofile=512k,nproc=128k)           |
+#         |          | [feat]  sysctl.conf refer to requirements of GP                         |
+#         |          | [feat]  add help support                                                |
+# 1.6.0   | 20200811 | [fix]   fix REPLY variable issue                                        |
+#         |          | [feat]  add ansible tool                                                |
+#         |          | [feat]  version supports major.minor.patch                              |
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -28,7 +31,7 @@
 # functions don't include below path in which some components would install
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
-VERSION="1.5"
+VERSION="1.6.0"
 usage() {
   echo "NAME"
   echo "        centos7.sh - dev2 matainance shell"
@@ -858,6 +861,17 @@ install_vscodeserver() {
   rm -rf "${VERSION_ARR[${IDX}]}"
 }
 
+install_ansible() {
+  install_sshpass
+  scp_get ftp 'ansible*.zip' '.'
+  if [[ $? == 0 ]]; then
+    unzip -d tmp ansible*.zip
+    rm -rf ansible*.zip > /dev/null 2>&1
+    cd tmp && sudo yum -y install *.rpm && cd .. && rm -rf tmp
+    [ $? == 0 ] && action "install ansible successfully" /bin/true || action "install ansible failed" /bin/false
+  fi
+}
+
 install_other_tools() {
   while true
   do
@@ -865,9 +879,10 @@ install_other_tools() {
     echo -e "\033[36m(1) install sshpass"
     echo -e "\033[36m(2) install arthas"
     echo -e "\033[36m(3) install vscode-server"
+    echo -e "\033[36m(4) install ansible"
     echo -e "\033[36m(0) exit\033[0m"
     read -p "Please enter your choice[0-3]: "
-    case "${REPLAY}" in
+    case "${REPLY}" in
       0)
         clear
         break
@@ -880,6 +895,9 @@ install_other_tools() {
         ;;
       3)
         install_vscodeserver
+        ;;
+      4)
+        install_ansible
         ;;
       *)
         echo "----------------------------------"
@@ -899,9 +917,12 @@ update() {
     NEW_VERSION=$(echo ${NEW_VERSION} | awk -F ':' '{print $2}')
     MAJOR=$(echo ${VERSION} | awk -F '.' '{print $1}')
     MINOR=$(echo ${VERSION} | awk -F '.' '{print $2}')
+    PATCH=$(echo ${VERSION} | awk -F '.' '{print $3}')
+    PATCH=$([ -z ${PATCH} ] && echo 0 || echo ${PATCH})
     NEW_MAJOR=$(echo ${NEW_VERSION} | awk -F '.' '{print $1}')
     NEW_MINOR=$(echo ${NEW_VERSION} | awk -F '.' '{print $2}')
-    if [[ ${NEW_MAJOR} -gt ${MAJOR} || ${NEW_MINOR} -gt ${MINOR} ]]; then
+    NEW_PATCH=$(echo ${NEW_VERSION} | awk -F '.' '{print $3}')
+    if [[ ${NEW_MAJOR} -gt ${MAJOR} || ${NEW_MINOR} -gt ${MINOR} || ${NEW_PATCH} -gt ${PATCH} ]]; then
       echo -e "\033[36mthere is a new version, upgrading...\033[0m"
       read -p "upgrade or not?[y/n]"
       if [[ "${REPLY}" == "" || "${REPLY}" == "y" ]]; then
