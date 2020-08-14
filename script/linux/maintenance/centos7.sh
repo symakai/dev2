@@ -23,6 +23,7 @@
 # 1.6.0   | 20200811 | [fix]   fix REPLY variable issue                                        |
 #         |          | [feat]  add ansible tool                                                |
 #         |          | [feat]  version supports major.minor.patch                              |
+# 1.6.1   | 20200815 | [fix]   fix menu
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -979,7 +980,7 @@ main() {
     echo -e "\033[36m(11) config sync time under intranet clusters"
     echo -e "\033[36m(12) config authorization under clusters for bothway"
     echo -e "\033[36m(13) config backspace as delete"
-    echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server)"
+    echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server|ansible)"
     echo -e "\033[36m(0)  exit\033[0m"
     read -p "Please enter your choice[0-14]: "
     case "${REPLY}" in
