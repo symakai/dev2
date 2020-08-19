@@ -2,7 +2,7 @@
 #########################################################
 # Note:
 # 1.utility of devementment and maintenance
-# 2.compatible with [CentOS7.x,)
+# 2.compatible with [Redhat7.x || CentOS7.x,)
 # @author:zhanghao
 # @groupId:dev2
 #########################################################
@@ -23,7 +23,9 @@
 # 1.6.0   | 20200811 | [fix]   fix REPLY variable issue                                        |
 #         |          | [feat]  add ansible tool                                                |
 #         |          | [feat]  version supports major.minor.patch                              |
-# 1.6.1   | 20200815 | [fix]   fix menu
+# 1.6.1   | 20200815 | [fix]   fix menu                                                        |
+# 1.7.0   | 20200819 | [feat]  authorize cluster wth one-way for ansible                       |
+#         |          | [fix]   fix virtual ip address                                          |
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -32,7 +34,8 @@
 # functions don't include below path in which some components would install
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
-VERSION="1.6.0"
+VERSION="1.7.0"
+RELEASE_NOTES="[feat]  authorize cluster with one-way for ansible\n[fix]   fix virtual ip address"
 usage() {
   echo "NAME"
   echo "        centos7.sh - dev2 matainance shell"
@@ -63,7 +66,7 @@ fi
 #date
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
 #ip
-IPADDR=$(ifconfig | grep "inet" | grep -vE  'inet6|127.0.0.1' | awk '{print $2}' | sed -n '1p')
+IPADDR=$(ifconfig | grep "inet" | grep -vE  'inet6|127.0.0.1' | grep -vE '0.0.0.0' | awk '{print $2}' | sed -n '1p')
 #hostname
 HOSTNAME=$(hostname -s)
 #user
@@ -497,6 +500,7 @@ config_outer_sync_time() {
   echo ""
   sleep 2
 }
+
 config_inner_sync_time() {
   echo "================config intranet time sync================"
   sync="ntpd"
@@ -586,24 +590,44 @@ EOF
   echo ""
   sleep 2
 }
+
+# $1: next step
 read_name() {
   read -p "input authorized user name that you want to:" name
   if [[ $name == "" ]]; then
-    read -p "input user name is null, quit?[y/n]:" option
-    if [[ $option == "y" || $option == "Y" ]]; then
+    read -p "input user name is null, quit?[y/n]:"
+    if [[ "${REPLY}" == "y" || "${REPLY}" == "Y" ]]; then
       step="quit"
       return 1;
     else
-      authorizationName
+      read_name $1
     fi
   fi
   step=$1
 }
+
+# $1: next step
+read_pwd() {
+  read -p "input password belongs to ${name}:" password
+  if [[ "${password}" == "" ]]; then
+    read -p "input password is null, quit?[y/n]:"
+    if [[ "${REPLY}" == "y" || "${REPLY}" == "Y" ]]; then
+      step="quit"
+      return 1;
+    else
+      read_pwd $1
+    fi
+  fi
+  step=$1
+}
+
+# $1: next step
+# $2: prompt information
 read_ip() {
-  read -p "input $2, for example ip1,ip2,ip3:" ips
+  read -p "input $2, for example ip1,ip2,ip3...:" ips
   if [[ $ips == "" ]]; then
-    read -p "input ip address lists is null, quit?[y/n]:" option
-    if [[ $option == "y" || $option == "Y" ]]; then
+    read -p "input ip address list is null, quit?[y/n]:"
+    if [[ "${REPLY}" == "y" || "${REPLY}" == "Y" ]]; then
       step="quit"
       return 1
     else
@@ -637,8 +661,7 @@ read_ip() {
   step=$1
 }
 
-config_authorization() {
-  echo "==================Authorization=========================="
+echo_authorization_info() {
   echo ""
   echo "*************************************************************************************************"
   echo "* 1.input user name that you want to authorise,for example dce or other user"
@@ -649,6 +672,11 @@ config_authorization() {
   echo "*   b)please confirm permission of /home/xxx is 0700(drwx------)"
   echo "*************************************************************************************************"
   echo ""
+}
+
+config_authorization_bothway() {
+  echo "==================Authorization=========================="
+  echo_authorization_info
   while true
   do
     case $step in
@@ -699,7 +727,53 @@ config_authorization() {
   echo "========================================================="
 }
 
+config_authorization_oneway() {
+  echo "==================Authorization=========================="
+  echo_authorization_info
+  while true
+  do
+    case $step in
+      "pwd")
+        read_pwd "ip"
+        ;;
+      "ip")
+        read_ip "auth" "ip list"
+        ;;
+      "auth")
+        break
+        ;;
+      "quit")
+        break
+        ;;
+      "name")
+        read_name "pwd"
+        ;;
+      *)
+        read_name "pwd"
+        ;;
+    esac
+  done
+  if [[ $step == "quit" ]]; then
+    return 1
+  fi
+  if [[ $step == "auth" ]]; then
+    local counts=${#iplist[@]}
+    #cat ~/.ssh/id_rsa.pub | ssh user@machine "mkdir ~/.ssh; cat >> ~/.ssh/authorized_keys"
+    if [[ ! -f ~/.ssh/id_rsa.pub ]]; then
+      echo -e \"\n\033[36m*****generate local machine rsa key*****\033[0m\n\";
+      ssh-keygen -t rsa
+    fi
+    install_sshpass
+    for ((i=0; i<counts; i++))
+    do
+      echo -e "\n\033[36m*****Authorise ip:${IPADDR}=>ip:${iplist[i]}*****\033[0m"
+      sshpass -p ${password} ssh-copy-id -i ~/.ssh/id_rsa.pub ${name}@${iplist[i]}
+    done
+  fi
+  step="name"
+  echo "========================================================="
 
+}
 
 # set backspace as erase for root and all login users(/home/*)
 config_backspace() {
@@ -910,6 +984,7 @@ install_other_tools() {
     esac
   done
 }
+
 update() {
   install_sshpass -q
   which sshpass > /dev/null 2>&1
@@ -925,6 +1000,8 @@ update() {
     NEW_PATCH=$(echo ${NEW_VERSION} | awk -F '.' '{print $3}')
     if [[ ${NEW_MAJOR} -gt ${MAJOR} || ${NEW_MINOR} -gt ${MINOR} || ${NEW_PATCH} -gt ${PATCH} ]]; then
       echo -e "\033[36mthere is a new version, upgrading...\033[0m"
+      echo -e "\033[36mRELEASE NOTES:\033[0m"
+      echo -e "${RELEASE_NOTES}"
       read -p "upgrade or not?[y/n]"
       if [[ "${REPLY}" == "" || "${REPLY}" == "y" ]]; then
         scp_get ftp "centos7.sh" "/root"
@@ -978,9 +1055,10 @@ main() {
     echo -e "\033[36m(9)  config linux kernel(refer to requirements of GP)"
     echo -e "\033[36m(10) config sync time under internet environment"
     echo -e "\033[36m(11) config sync time under intranet clusters"
-    echo -e "\033[36m(12) config authorization under clusters for bothway"
-    echo -e "\033[36m(13) config backspace as delete"
-    echo -e "\033[36m(14) install other tools(sshpass|arthas|vscode-server|ansible)"
+    echo -e "\033[36m(12) config authorization cluster:bothway(<=>)"
+    echo -e "\033[36m(13) config authorization cluster:one-way( =>) for ansible control mathine"
+    echo -e "\033[36m(14) config backspace as delete"
+    echo -e "\033[36m(15) install other tools(sshpass|arthas|vscode-server|ansible)"
     echo -e "\033[36m(0)  exit\033[0m"
     read -p "Please enter your choice[0-14]: "
     case "${REPLY}" in
@@ -1022,12 +1100,15 @@ main() {
         config_inner_sync_time
         ;;
       12)
-        config_authorization
+        config_authorization_bothway
         ;;
       13)
-        config_backspace
+        config_authorization_oneway
         ;;
       14)
+        config_backspace
+        ;;
+      15)
         install_other_tools
         ;;
       *)
