@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2;
+package main.java.com.dce.dev2.jvm;
 
 /**
  * Jstat
@@ -16,6 +16,6 @@ public class Jstat {
             b3 = null;
             b5 = null;
             b6 = null;
-        } 
+        }
     }
 }

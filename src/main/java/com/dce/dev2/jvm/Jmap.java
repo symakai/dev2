@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2;
+package main.java.com.dce.dev2.jvm;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,10 +12,10 @@ public class Jmap {
     public static void main(String[] args) {
         List<String> list = new ArrayList<>();
         Random ra = new Random();
-        String base = "base"; 
+        String base = "base";
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             String val = base + String.valueOf(ra.nextInt(i + 1));
-            list.add(val); 
+            list.add(val);
             try {
                 Thread.sleep(5);
             } catch (Exception e) {

@@ -25,7 +25,9 @@
 #         |          | [feat]  version supports major.minor.patch                              |
 # 1.6.1   | 20200815 | [fix]   fix menu                                                        |
 # 1.7.0   | 20200819 | [feat]  authorize cluster wth one-way for ansible                       |
-#         |          | [fix]   fix virtual ip address                                          |
+#         |          | [feat]  add sudoer for special user                                     |
+#         |          | [fix]   fix virtual ip address issue                                    |
+#         |          | [refactor] refactor menu order                                          |
 #----------------------------------------------------------------------------------------------|
 
 #Source function library.
@@ -35,7 +37,7 @@
 PATH=$PATH:/usr/local/bin:/usr/local/sbin
 export TERM=xterm
 VERSION="1.7.0"
-RELEASE_NOTES="[feat]  authorize cluster with one-way for ansible\n[fix]   fix virtual ip address"
+RELEASE_NOTES="[feat]  authorize cluster with one-way for ansible\n[feat]  add sudoer for special user\n[fix]   fix virtual ip address\n[refactor] refactor menu order"
 usage() {
   echo "NAME"
   echo "        centos7.sh - dev2 matainance shell"
@@ -188,6 +190,63 @@ add_user() {
       action "add sudoer successfully"  /bin/true
     fi
     break
+  done
+  echo "========================================================="
+  echo ""
+  sleep 2
+}
+
+add_sudoer() {
+  echo "========================add sudoer========================="
+
+  read -p "input users list to witch you want to add,e.x. user1,user2,user3:" users
+  if [[ "${users}" == "" ]]; then
+    echo "please input users list"
+    return 1
+  fi
+  local user_arr=(${users//,/ })
+  local added=()
+  local to_add=()
+  local err=()
+  local counts=${#user_arr[@]}
+  local err_cnt=0
+  local added_cnt=0
+  local toadd_cnt=0
+  # \d is supported by perl regex, posix and gnu regex doesn't support \d
+  find /etc/ -regextype posix-egrep -regex "/etc/sudoers.[0-9]+-[0-9]+-[0-9]+" -exec rm -rf {} \;
+  cp /etc/sudoers /etc/sudoers.$(date +%F)
+  for ((i=0; i<counts; i++)) do
+    id ${user_arr[i]} > /dev/null 2>&1
+    if [[ $? != 0 ]]; then
+      err[err_cnt]=${user_arr[i]}
+      ((err_cnt++))
+      continue
+    fi
+    grep -q "${user_arr[i]}" /etc/sudoers
+    if [[ $? == 0 ]]; then
+      added[added_cnt]=${user_arr[i]}
+      ((added_cnt++))
+    else
+      chattr -i /etc/sudoers
+      echo "${user_arr[i]}  ALL=(ALL)   NOPASSWD: ALL,/usr/bin/passwd [a-zA-Z0-9_-]*,!/usr/bin/passwd,!/usr/bin/passwd root,!/usr/sbin/visudo" >> /etc/sudoers
+      to_add[toadd_cnt]=${user_arr[i]}
+      ((toadd_cnt++))
+      chattr +i /etc/sudoers
+    fi
+  done
+  for ((i=0; i<toadd_cnt; i++)) do
+    grep -q "${to_add[i]}" /etc/sudoers
+    if [[ $? == 0 ]]; then
+      action "add sudoer for ${to_add[i]} successfully"  /bin/true
+    else
+      action "add sudoer for ${to_add[i]} failed" /bin/false
+    fi
+  done
+  for ((i=0; i<added_cnt; i++)) do
+    action "user:${added[i]} has belonged to sudoers" /bin/true
+  done
+  for ((i=0; i<err_cnt; i++)) do
+    action "user:${err[i]} does not exist" /bin/false
   done
   echo "========================================================="
   echo ""
@@ -555,8 +614,7 @@ EOF
   fi
   '
   local counts=${#iplist[@]}
-  for ((i=0; i<counts; i++))
-  do
+  for ((i=0; i<counts; i++)) do
     if [[ ${iplist[i]} == $ntpserver ]]; then
       echo -e "\nclient ip(${iplist[i]}) is same as ntpserver,skip this ip\n"
       continue
@@ -608,6 +666,7 @@ read_name() {
 
 # $1: next step
 read_pwd() {
+  echo -e "\033[36mnotes:you should confirm there is the same password with the ${name} user for next ip list of your input\033[0m"
   read -p "input password belongs to ${name}:" password
   if [[ "${password}" == "" ]]; then
     read -p "input password is null, quit?[y/n]:"
@@ -638,8 +697,7 @@ read_ip() {
   #whether ip format is correct or not
   # for ip in ${iplist[@]}
   local counts=${#iplist[@]}
-  for ((i=0; i<counts; i++))
-  do
+  for ((i=0; i<counts; i++)) do
     ip=${iplist[i]}
     echo $ip | grep -wP "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" > /dev/null
     if [[ $? != 0 ]]; then
@@ -647,8 +705,7 @@ read_ip() {
       step="ip"
       return 1
     fi
-    for ((j=0; j<counts; j++))
-    do
+    for ((j=0; j<counts; j++)) do
       if [[ $i != $j ]]; then
         if [[ ${iplist[i]} == ${iplist[j]} ]]; then
           echo "there are two same ip address:${iplist[i]}"
@@ -703,10 +760,8 @@ config_authorization_bothway() {
   if [[ $step == "auth" ]]; then
     local counts=${#iplist[@]}
     #cat ~/.ssh/id_rsa.pub | ssh user@machine "mkdir ~/.ssh; cat >> ~/.ssh/authorized_keys"
-    for ((i=0; i<counts; i++))
-    do
-      for ((j=0; j<counts; j++))
-      do
+    for ((i=0; i<counts; i++)) do
+      for ((j=0; j<counts; j++)) do
         echo -e "\n\033[36m*****Authorise ip:${iplist[i]}=>ip:${iplist[j]}*****\033[0m"
         echo -e "\033[36m*****login ip:${iplist[i]} as $name******\033[0m\n"
         ssh -tt -o StrictHostKeyChecking=no $name@${iplist[i]} "
@@ -763,16 +818,25 @@ config_authorization_oneway() {
       echo -e \"\n\033[36m*****generate local machine rsa key*****\033[0m\n\";
       ssh-keygen -t rsa
     fi
-    install_sshpass
-    for ((i=0; i<counts; i++))
-    do
+    #quiet mode
+    install_sshpass -q
+    local ret_arr=()
+    for ((i=0; i<counts; i++)) do
       echo -e "\n\033[36m*****Authorise ip:${IPADDR}=>ip:${iplist[i]}*****\033[0m"
       sshpass -p ${password} ssh-copy-id -i ~/.ssh/id_rsa.pub ${name}@${iplist[i]}
+      ret_arr[i]=$?
     done
   fi
+  for ((i=0; i<counts; i++)) do
+    if [[ ${ret_arr[i]} == 0 ]]; then
+      action "authorized ip:${iplist[i]}" /bin/true
+    else
+      action "authorized ip:${iplist[i]}" /bin/false
+    fi
+  done
   step="name"
   echo "========================================================="
-
+  sleep 5
 }
 
 # set backspace as erase for root and all login users(/home/*)
@@ -1044,72 +1108,76 @@ main() {
     echo -e "\033[36m* Color Support:                                           *"
     echo -e "\033[36m* secureCRT->Terminal->Emulation->(Xterm+ANSI Color)       *"
     echo -e "\033[36m*==========================================================*"
-    echo -e "\033[36m(1)  create new user and config whether add sudoer or not"
-    echo -e "\033[36m(2)  config aliyun yum for internet environment, ***forbid run this choice under intranet***"
-    echo -e "\033[36m(3)  config chinese character(LC_CTYPE=zh_CN.UTF-8)"
-    echo -e "\033[36m(4)  forbid SELINUX and stop firewall"
-    echo -e "\033[36m(5)  config ssh port to 22"
-    echo -e "\033[36m(6)  config default history(command history=2000)"
-    echo -e "\033[36m(7)  install sys tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
-    echo -e "\033[36m(8)  config nofile and nproc ulimit(nproc=128k;nofile=512k)"
-    echo -e "\033[36m(9)  config linux kernel(refer to requirements of GP)"
-    echo -e "\033[36m(10) config sync time under internet environment"
-    echo -e "\033[36m(11) config sync time under intranet clusters"
-    echo -e "\033[36m(12) config authorization cluster:bothway(<=>)"
-    echo -e "\033[36m(13) config authorization cluster:one-way( =>) for ansible control mathine"
-    echo -e "\033[36m(14) config backspace as delete"
-    echo -e "\033[36m(15) install other tools(sshpass|arthas|vscode-server|ansible)"
+    echo -e "\033[36m(1)  config aliyun yum for internet environment, ***forbid run this function under the intranet environment***"
+    echo -e "\033[36m(2)  create new user and config whether add sudoer or not"
+    echo -e "\033[36m(3)  add special user to sudoer"
+    echo -e "\033[36m(4)  config chinese encoding(LC_CTYPE=zh_CN.UTF-8)"
+    echo -e "\033[36m(5)  forbid SElinux and stop firewall"
+    echo -e "\033[36m(6)  config ssh default port to 22"
+    echo -e "\033[36m(7)  config default history(command history=2000)"
+    echo -e "\033[36m(8)  config backspace as delete"
+    echo -e "\033[36m(9)  config nofile and nproc ulimit(nproc=128k;nofile=512k refer to requirements of GreenPlum)"
+    echo -e "\033[36m(10) config linux kernel(refer to requirements of GreenPlum)"
+    echo -e "\033[36m(11) install system tools(dos2unix|sysstat|openssl|openssh|bash|ftp)"
+    echo -e "\033[36m(12) install other  tools(sshpass|arthas|vscode-server|ansible)"
+    echo -e "\033[36m(13) config NTP(sync time) under the internet environment"
+    echo -e "\033[36m(14) config NTP(sync time) under the intranet environment"
+    echo -e "\033[36m(15) config authorization cluster:bothway(A<=>B)"
+    echo -e "\033[36m(16) config authorization cluster:one-way(A==>B) for ansible control mathine"
     echo -e "\033[36m(0)  exit\033[0m"
-    read -p "Please enter your choice[0-14]: "
+    read -p "Please enter your choice[0-16]: "
     case "${REPLY}" in
       0)
         clear
         break
         ;;
       1)
-        add_user
-        ;;
-      2)
         config_yum
         ;;
+      2)
+        add_user
+        ;;
       3)
-        config_charset
+        add_sudoer
         ;;
       4)
-        config_firewall
+        config_charset
         ;;
       5)
-        config_default_ssh_port
+        config_firewall
         ;;
       6)
-        config_history
+        config_default_ssh_port
         ;;
       7)
-        install_sys_tools
+        config_history
         ;;
       8)
-        config_limits
-        ;;
-      9)
-        config_sysctl
-        ;;
-      10)
-        config_outer_sync_time
-        ;;
-      11)
-        config_inner_sync_time
-        ;;
-      12)
-        config_authorization_bothway
-        ;;
-      13)
-        config_authorization_oneway
-        ;;
-      14)
         config_backspace
         ;;
-      15)
+      9)
+        config_limits
+        ;;
+      10)
+        config_sysctl
+        ;;
+      11)
+        install_sys_tools
+        ;;
+      12)
         install_other_tools
+        ;;
+      13)
+        config_outer_sync_time
+        ;;
+      14)
+        config_inner_sync_time
+        ;;
+      15)
+        config_authorization_bothway
+        ;;
+      16)
+        config_authorization_oneway
         ;;
       *)
         echo "----------------------------------"

@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2;
+package main.java.com.dce.dev2.jvm;
 
 /**
  * Xss
@@ -24,6 +24,6 @@ public class Xss {
         } catch (Throwable e) {
             System.out.println("call = " + Xss.count);
             e.printStackTrace();
-        } 
+        }
     }
 }
