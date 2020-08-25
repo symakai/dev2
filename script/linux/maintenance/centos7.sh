@@ -24,8 +24,8 @@
 #         |          | [feat]  add ansible tool                                                |
 #         |          | [feat]  version supports major.minor.patch                              |
 # 1.6.1   | 20200815 | [fix]   fix menu                                                        |
-# 1.7.0   | 20200819 | [feat]  authorize cluster wth one-way for ansible                       |
-#         |          | [feat]  add sudoer for special user                                     |
+# 1.7.0   | 20200824 | [feat]  authorize cluster wth one-way for ansible                       |
+#         |          | [feat]  add sudoer for special users                                    |
 #         |          | [fix]   fix virtual ip address issue                                    |
 #         |          | [refactor] refactor menu order                                          |
 #----------------------------------------------------------------------------------------------|
@@ -243,7 +243,7 @@ add_sudoer() {
     fi
   done
   for ((i=0; i<added_cnt; i++)) do
-    action "user:${added[i]} has belonged to sudoers" /bin/true
+    action "user:${added[i]} has been added in sudoers file before" /bin/true
   done
   for ((i=0; i<err_cnt; i++)) do
     action "user:${err[i]} does not exist" /bin/false
@@ -823,7 +823,7 @@ config_authorization_oneway() {
     local ret_arr=()
     for ((i=0; i<counts; i++)) do
       echo -e "\n\033[36m*****Authorise ip:${IPADDR}=>ip:${iplist[i]}*****\033[0m"
-      sshpass -p ${password} ssh-copy-id -i ~/.ssh/id_rsa.pub ${name}@${iplist[i]}
+      sshpass -p ${password} ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub ${name}@${iplist[i]}
       ret_arr[i]=$?
     done
   fi
@@ -1099,6 +1099,7 @@ main() {
   echo -e "\033[36m| GCC            :$GCC_VERSION"
   echo -e "\033[36m|-----------------------------------------------------------\033[0m"
 
+  local ver=$(printf "%-59s*" "* version:${VERSION}")
   while true
   do
     echo ""
@@ -1107,6 +1108,7 @@ main() {
     echo -e "\033[36m*                                                          *"
     echo -e "\033[36m* Color Support:                                           *"
     echo -e "\033[36m* secureCRT->Terminal->Emulation->(Xterm+ANSI Color)       *"
+    echo -e "\033[36m${ver}"
     echo -e "\033[36m*==========================================================*"
     echo -e "\033[36m(1)  config aliyun yum for internet environment, ***forbid run this function under the intranet environment***"
     echo -e "\033[36m(2)  create new user and config whether add sudoer or not"
