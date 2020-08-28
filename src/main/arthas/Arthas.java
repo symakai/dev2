@@ -1,5 +1,4 @@
-package main.java.com.dce.dev2.arthas;
-
+package arthas;
 
 import java.util.HashSet;
 import java.util.concurrent.ExecutorService;

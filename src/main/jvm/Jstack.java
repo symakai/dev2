@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2.jvm;
+package jvm;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;

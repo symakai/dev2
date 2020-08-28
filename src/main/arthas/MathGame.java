@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2.arthas;
+package arthas;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package main.java.com.dce.dev2.jvm;
+package jvm;
 
 /**
  * Jdb
