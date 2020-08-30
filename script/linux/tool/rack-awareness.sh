@@ -1,4 +1,5 @@
 #!/bin/bash
+# for hdfs configuration
 
 HADOOP_CONF=${HADOOP_HOME}/etc/hadoop
 while [[ $# -gt 0 ]]; do
