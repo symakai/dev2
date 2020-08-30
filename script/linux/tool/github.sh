@@ -122,7 +122,7 @@ for ((i=0; i<${#ips[@]}; i++)) do
     host=$(echo ${ips[i]} | awk -F ' ' '{print $2}')
     grep -E -o -q "${host}" "${host_path}"
     if [[ $? == 0 ]]; then
-        sed -E -i "s/^([0-9]+\.){3}[0-9]+ ${host}/${ips[i]}" ${host_path}
+        sed -E -i "s/^([0-9]+\.){3}[0-9]+ ${host}/${ips[i]}/g" ${host_path}
     else
         echo ${ips[i]} >> ${host_path}
     fi
