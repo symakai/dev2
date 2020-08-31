@@ -1,11 +1,26 @@
 #!/bin/bash
 #****************************************************
-# Utility of generate ip lists by domains of github 
+# Utility of generate ip lists by domains of github
 # @author:zhanghao
 # @groupId:dev2
-# @version 1.0
-# @date 20200830
 #****************************************************
+
+# ---------------------------------------------------------------------------------------------
+# version |  date    | comments                                                                |
+# ---------------------------------------------------------------------------------------------
+# 1.0.0   | 20200831 | release                                                                 |
+#----------------------------------------------------------------------------------------------|
+VERSION="1.0.0"
+if [[ $# == 1 ]]; then
+  if [[ $1 == "-v" || $1 == "-V" ]]; then
+    echo "version:${VERSION}"
+    exit 0
+  else
+    echo "unsupported option:$1"
+    exit 1
+  fi
+fi
+
 hosts=(
 www.github.com \
 github.com \
@@ -46,7 +61,7 @@ function search_ip() {
     echo -e "\033[36m${qry_host}\033[0m"
     curl -L --connect-timeout ${CONNECT_TIMEOUT} -m ${TRANSFER_TIMEOUT} -Ss -o ${host}.html ${qry_host}
     ret=$?
-    grep -E -q '404 Page Not Found' ${host}.html 
+    grep -E -q '404 Page Not Found' ${host}.html
     if [[ $? == 0 ]]; then
         qry_host2=${domain}.${IP_URL}
         echo -e "\033[36m${qry_host2}\033[0m"
@@ -102,7 +117,7 @@ for ((i=0; i<${#hosts[@]}; i++)) do
     echo -e "\033[36mURL:${host}\033[0m"
     echo "${host}" | grep -E -q 'w{3}\..*'
     if [[ $? == 0 ]]; then
-        # URL likes www.xxx.com 
+        # URL likes www.xxx.com
         domain=${host#www.}
     else
         # URL likes xxx.com
@@ -120,9 +135,9 @@ for ((i=0; i<${#ips[@]}; i++)) do
         host_path="/etc/hosts"
     fi
     host=$(echo ${ips[i]} | awk -F ' ' '{print $2}')
-    grep -E -o -q "${host}" "${host_path}"
+    grep -P -o -q "\s*(\d{1,3}\.){3}\d{1,3}\s+${host}" "${host_path}"
     if [[ $? == 0 ]]; then
-        sed -E -i "s/^([0-9]+\.){3}[0-9]+ ${host}/${ips[i]}/g" ${host_path}
+        sed -E -i "s/\s*([0-9]+\.){3}[0-9]+\s+${host}/${ips[i]}/g" ${host_path}
     else
         echo ${ips[i]} >> ${host_path}
     fi
