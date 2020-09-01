@@ -9,6 +9,7 @@
 # version |  date    | comments                                                                |
 # ---------------------------------------------------------------------------------------------
 # 1.0.0   | 20200831 | release                                                                 |
+# 1.0.1   | 20200901 | [fix] judge OS logical                                                  |
 #----------------------------------------------------------------------------------------------|
 VERSION="1.0.0"
 if [[ $# == 1 ]]; then
@@ -47,11 +48,17 @@ ips=()
 errs=()
 idx=0
 # curl connect timeout
-CONNECT_TIMEOUT=5
+CONNECT_TIMEOUT=10
 # curl get data timeout
-TRANSFER_TIMEOUT=15
+TRANSFER_TIMEOUT=20
 
-cat /etc/redhat-release > /dev/null 2>&1 && OS=LINUX || OS=WIN
+OS=$(uname)
+if [[ ${OS} == "Linux" || ${OS} == "Darwin" ]]; then
+    OS=LINUX
+else
+    OS=WIN
+fi
+# cat /etc/redhat-release > /dev/null 2>&1 && OS=LINUX || OS=WIN
 
 function search_ip() {
     local domain=$1
