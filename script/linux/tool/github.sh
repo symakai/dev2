@@ -10,8 +10,9 @@
 # ---------------------------------------------------------------------------------------------
 # 1.0.0   | 20200831 | release                                                                 |
 # 1.0.1   | 20200901 | [fix] judge OS logical                                                  |
+# 1.0.2   | 20200902 | [fix] grep -P is not available on Mac,use grep -E instead               |
 #----------------------------------------------------------------------------------------------|
-VERSION="1.0.0"
+VERSION="1.0.2"
 if [[ $# == 1 ]]; then
   if [[ $1 == "-v" || $1 == "-V" ]]; then
     echo "version:${VERSION}"
@@ -53,12 +54,21 @@ CONNECT_TIMEOUT=10
 TRANSFER_TIMEOUT=20
 
 OS=$(uname)
-if [[ ${OS} == "Linux" || ${OS} == "Darwin" ]]; then
+# alias is opened by default under interactive mode
+# shell is non-interactive mode, so open alias explictly
+# or use /bin/bash -login and put alias setting in ~/.bashrc
+shopt -s expand_aliases
+
+if [[ ${OS} == "Linux" ]]; then
+    alias dgrep='grep -P'
+    OS=LINUX
+elif [[ ${OS} == "Darwin" ]]; then
+    alias dgrep='grep -E'
     OS=LINUX
 else
+    alias dgrep='grep -P'
     OS=WIN
 fi
-# cat /etc/redhat-release > /dev/null 2>&1 && OS=LINUX || OS=WIN
 
 function search_ip() {
     local domain=$1
@@ -88,10 +98,10 @@ function get_ip() {
     local host=$1
     rm -rf rps
     # ungreedy
-    ret=$(grep -P -o "<th>IP Address(es)*?</th>.*?(<li>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}</li>){1,}" ${file})
+    ret=$(dgrep -o "<th>IP Address(es)*?</th>.*?(<li>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}</li>){1,}" ${file})
     echo ${ret} | grep -q "IP Addresses"
     if [[ $? == 0 ]]; then
-        local ip_arr=($(echo ${ret} | grep -P -o "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"))
+        local ip_arr=($(echo ${ret} | dgrep -o "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"))
         local i
         for ((i=0; i<${#ip_arr[@]}; i++)) do
             local start=$(date +%s)
@@ -110,7 +120,7 @@ function get_ip() {
             echo -e "\033[36msomething was wrong\033[0m"
         fi
     else
-        ip=$(echo ${ret} | grep -P -o "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+        ip=$(echo ${ret} | dgrep -o "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
     fi
     ips[idx]="${ip} ${host}"
     ((idx++))
@@ -142,7 +152,7 @@ for ((i=0; i<${#ips[@]}; i++)) do
         host_path="/etc/hosts"
     fi
     host=$(echo ${ips[i]} | awk -F ' ' '{print $2}')
-    grep -P -o -q "\s*(\d{1,3}\.){3}\d{1,3}\s+${host}" "${host_path}"
+    dgrep -o -q "\s*(\d{1,3}\.){3}\d{1,3}\s+${host}" "${host_path}"
     if [[ $? == 0 ]]; then
         sed -E -i "s/\s*([0-9]+\.){3}[0-9]+\s+${host}/${ips[i]}/g" ${host_path}
     else
